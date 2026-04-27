@@ -41,10 +41,10 @@ function getAlertThresholdMs(): number {
 }
 
 async function checkOAuthHealth(sender: Sender): Promise<void> {
-  // If a long-lived setup token is configured, the credentials file is irrelevant
-  const env = readEnvFile(['CLAUDE_CODE_OAUTH_TOKEN']);
-  if (env.CLAUDE_CODE_OAUTH_TOKEN) {
-    logger.debug('Using long-lived env token (CLAUDE_CODE_OAUTH_TOKEN), skipping credentials check');
+  // If a long-lived setup token or API key is configured, the OAuth credentials file is irrelevant
+  const env = readEnvFile(['CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_API_KEY']);
+  if (env.CLAUDE_CODE_OAUTH_TOKEN || env.ANTHROPIC_API_KEY) {
+    logger.debug('Using env-based auth (CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY), skipping OAuth credentials check');
     lastAlertLevel = 'none';
     return;
   }
