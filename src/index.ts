@@ -14,6 +14,7 @@ import { runConsolidation } from './memory-consolidate.js';
 import { runDecaySweep } from './memory.js';
 import { runWarroomAvatarMigration } from './avatars.js';
 import { initOAuthHealthCheck } from './oauth-health.js';
+import { bootstrapModules } from './modules/bootstrap.js';
 import { initOrchestrator } from './orchestrator.js';
 import { initScheduler } from './scheduler.js';
 import { setTelegramConnected, setBotInfo } from './state.js';
@@ -145,6 +146,10 @@ async function main(): Promise<void> {
   });
 
   initOrchestrator();
+
+  // Phase 5.2: register all dashboard modules with the universal registry.
+  // Idempotent — safe to call multiple times.
+  bootstrapModules();
 
   // Decay and consolidation run ONLY in the main process to prevent
   // multi-process over-decay (5x decay on simultaneous restart) and

@@ -17,6 +17,13 @@ import { Voices } from '@/pages/Voices';
 import { Chat } from '@/pages/Chat';
 import { WarRoom } from '@/pages/WarRoom';
 import { AgentFiles } from '@/pages/AgentFiles';
+// Phase 4.3 — Universal Diagnostic Pattern client-facing pages
+import { Pipeline } from '@/pages/Pipeline';
+import { ContentPerformance } from '@/pages/ContentPerformance';
+import { Opportunities } from '@/pages/Opportunities';
+import { Configs } from '@/pages/Configs';
+// Phase 5.1
+import { MetaAdsDashboard } from '@/pages/MetaAdsDashboard';
 import { DEFAULT_ROUTE } from '@/lib/routes';
 
 export function App() {
@@ -57,6 +64,13 @@ export function App() {
           <Route path="/warroom"><WarRoom /></Route>
           <Route path="/voices"><Voices /></Route>
           <Route path="/settings"><Settings /></Route>
+          {/* Phase 4.3 — client-facing diagnostic dashboard pages */}
+          <Route path="/pipeline"><Pipeline /></Route>
+          <Route path="/content-performance"><ContentPerformance /></Route>
+          <Route path="/opportunities"><Opportunities /></Route>
+          <Route path="/configs"><Configs /></Route>
+          {/* Phase 5.1 — Meta Ads diagnostic dashboard */}
+          <Route path="/meta-ads"><MetaAdsDashboard /></Route>
 
           {/* Common alt slugs that used to point at placeholder pages */}
           <Route path="/hive-mind"><Redirect to="/hive" /></Route>

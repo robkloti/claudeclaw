@@ -124,7 +124,7 @@ const chatModelOverride = new Map<string, string>();
 
 const AVAILABLE_MODELS: Record<string, string> = {
   opus: 'claude-opus-4-6',
-  sonnet: 'claude-sonnet-4-5',
+  sonnet: 'claude-sonnet-4-6',
   haiku: 'claude-haiku-4-5',
 };
 const DEFAULT_MODEL_LABEL = 'opus';

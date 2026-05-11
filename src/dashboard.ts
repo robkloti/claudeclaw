@@ -6,6 +6,16 @@ import { serve } from '@hono/node-server';
 import fs from 'fs';
 import path from 'path';
 import { AGENT_ID, ALLOWED_CHAT_ID, DASHBOARD_PORT, DASHBOARD_TOKEN, DASHBOARD_URL, PROJECT_ROOT, STORE_DIR, WHATSAPP_ENABLED, SLACK_USER_TOKEN, CONTEXT_LIMIT, agentDefaultModel, CLAUDECLAW_CONFIG } from './config.js';
+import { injectBranding } from './brand-injector.js';
+import { readEnvFile } from './env.js';
+import {
+  getModulesForPage,
+  operatorUnlock,
+  markTourSeen,
+  logAction,
+} from './modules/unlock-engine.js';
+import { getModule } from './modules/registry.js';
+import type { ModulePage } from './modules/types.js';
 import crypto from 'crypto';
 import {
   getAllScheduledTasks,
@@ -293,6 +303,61 @@ export function buildDashboardApp(botApi?: Api<RawApi>): Hono {
     return null;
   }
 
+  // ── Client-mode ACL (Phase 4.2 of AI-board port) ────────────────────────
+  // When CLIENT_MODE=true (in .env), the dashboard is in client-facing mode:
+  // operator-only API routes return 403 + the frontend hides them from the
+  // sidebar (frontend reads /api/info.client_mode to know).
+  //
+  // This is an additional layer ON TOP of the dashboard token. With the
+  // token, a client can hit ANY endpoint; with this ACL, attempts at
+  // operator-only endpoints get 403 even with a valid token.
+  //
+  // Operator-only categories (anything not in this list is client-safe):
+  //   - /api/warroom/*  (operator collaboration tooling)
+  //   - /api/meet/*     (meet sessions — operator)
+  //   - /api/voices/*   (voice config — needs API keys + agent assignment)
+  //   - All POST/PATCH/DELETE/PUT on /api/agents/* (read OK for sidebar)
+  //   - All POST/PATCH/DELETE/PUT on /api/agents/:id/files (CLAUDE.md editor)
+  //   - All POST/PATCH/DELETE/PUT on /api/tasks/* (scheduled task management)
+  //   - All POST/PATCH/DELETE/PUT on /api/dashboard/settings (read OK)
+  const clientModeEnv = readEnvFile(['CLIENT_MODE']);
+  const CLIENT_MODE = (clientModeEnv.CLIENT_MODE || '').trim().toLowerCase() === 'true';
+  if (CLIENT_MODE) {
+    logger.info('Client-mode ACL active: operator-only API routes will return 403');
+  }
+  function isOperatorOnlyPath(method: string, path: string): boolean {
+    if (!CLIENT_MODE) return false;
+    // Always-blocked prefixes (any method)
+    if (path.startsWith('/api/warroom/')) return true;
+    if (path.startsWith('/api/meet/')) return true;
+    if (path.startsWith('/api/voices/')) return true;
+    // Mutation-only blocks: GET is fine for these, mutations are operator
+    const isMutation = method === 'POST' || method === 'PATCH' || method === 'PUT' || method === 'DELETE';
+    if (!isMutation) return false;
+    if (path.startsWith('/api/agents/')) return true;
+    if (path === '/api/agents') return true;
+    if (path.startsWith('/api/tasks/') || path === '/api/tasks') return true;
+    if (path.startsWith('/api/dashboard/settings')) return true;
+    return false;
+  }
+  app.use('*', async (c, next) => {
+    if (!CLIENT_MODE) {
+      await next();
+      return;
+    }
+    const path = new URL(c.req.url).pathname;
+    if (!path.startsWith('/api/')) {
+      await next();
+      return;
+    }
+    const method = c.req.method;
+    if (isOperatorOnlyPath(method, path)) {
+      logger.warn({ method, path }, 'client-mode ACL: operator-only route blocked');
+      return c.json({ error: 'Forbidden — operator mode required', code: 'CLIENT_MODE_BLOCKED' }, 403);
+    }
+    await next();
+  });
+
   // Mutation kill-switch middleware. When DASHBOARD_MUTATIONS_ENABLED is
   // off, every non-GET request returns 503 — the runbook's promise is
   // "flip this to put the dashboard in read-only mode during an incident."
@@ -393,7 +458,7 @@ export function buildDashboardApp(botApi?: Api<RawApi>): Hono {
     // unauthenticated means a token-stripped URL still loads the app
     // instead of showing raw 401 JSON.
     const html = fs.readFileSync(newDashboardIndex, 'utf-8');
-    return c.html(html);
+    return c.html(injectBranding(html));
   });
 
   // Static asset serving for the Vite-built frontend.
@@ -465,7 +530,7 @@ export function buildDashboardApp(botApi?: Api<RawApi>): Hono {
     }
     // v2 SPA shell — no embedded token, safe to serve unauth so a
     // hard-refresh of a token-stripped URL still loads the app.
-    return c.html(fs.readFileSync(newDashboardIndex, 'utf-8'));
+    return c.html(injectBranding(fs.readFileSync(newDashboardIndex, 'utf-8')));
   });
 
   // Text War Room page. Expects ?meetingId= (created via POST
@@ -1861,6 +1926,9 @@ export function buildDashboardApp(botApi?: Api<RawApi>): Hono {
       botUsername: info.username || '',
       pid: process.pid,
       chatId: chatId || null,
+      // Phase 4.2: clients use this flag to filter their dashboard sidebar.
+      // True when the dashboard is running for a client (operator pages hidden).
+      client_mode: CLIENT_MODE,
     });
   });
 
@@ -1952,7 +2020,7 @@ export function buildDashboardApp(botApi?: Api<RawApi>): Hono {
     const model = body?.model?.trim();
     if (!model) return c.json({ error: 'model required' }, 400);
 
-    const validModels = ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-haiku-4-5'];
+    const validModels = ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5'];
     if (!validModels.includes(model)) return c.json({ error: `Invalid model` }, 400);
 
     const agentIds = listAgentIds();
@@ -1977,7 +2045,7 @@ export function buildDashboardApp(botApi?: Api<RawApi>): Hono {
     const model = body?.model?.trim();
     if (!model) return c.json({ error: 'model required' }, 400);
 
-    const validModels = ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-haiku-4-5'];
+    const validModels = ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5'];
     if (!validModels.includes(model)) return c.json({ error: `Invalid model. Valid: ${validModels.join(', ')}` }, 400);
 
     try {
@@ -2952,6 +3020,559 @@ export function buildDashboardApp(botApi?: Api<RawApi>): Hono {
   // /hive, /usage, /audit, /settings work without a token: the page
   // loads the SPA, which reads ?token= from the URL or sessionStorage
   // before making any API call.
+  // ── Phase 4.3 client-facing diagnostic dashboard endpoints ──────────────
+  // These power the Pipeline / Content Performance / Opportunities / Configs
+  // pages. All read from gyst-ops files. Pure read with one mutation
+  // (PATCH /api/configs/<key> for client config edits).
+
+  /**
+   * Resolve where gyst-ops lives. Defaults to ~/projects/gyst-ops.
+   * Per-client deploys can override via GYST_OPS_PATH env var.
+   */
+  function gystOpsPath(): string {
+    const env = readEnvFile(['GYST_OPS_PATH']);
+    return env.GYST_OPS_PATH || path.join(process.env.HOME || '/Users/robkloti', 'projects', 'gyst-ops');
+  }
+
+  /**
+   * SYSTEM-WIDE CONVENTION: the recency window for diagnostic surfaces.
+   *
+   * All diagnostic dashboards (Pipeline, Content Performance, future Meta Ads,
+   * etc.) filter to items active within this window. Default 30 days. Override
+   * per-deploy by setting RECENT_WINDOW_DAYS in .env.
+   *
+   * Rationale: old data (a campaign that ran 6 months ago, a post from last
+   * year) pollutes the "what should I do today" verdict. We pull broadly
+   * (puller: 90 days at the source layer) but DISPLAY narrowly.
+   *
+   * Higher-level rule: nothing in claudeclaw's diagnostic UI should show
+   * data older than RECENT_WINDOW_DAYS unless explicitly requested via a
+   * `?days=N` query param.
+   */
+  function recentWindowDays(override?: string | null): number {
+    if (override) {
+      const n = parseInt(override, 10);
+      if (!isNaN(n) && n > 0) return n;
+    }
+    const env = readEnvFile(['RECENT_WINDOW_DAYS']);
+    const n = parseInt(env.RECENT_WINDOW_DAYS || '30', 10);
+    return isNaN(n) || n <= 0 ? 30 : n;
+  }
+
+  function isWithinDays(isoDate: string, days: number): boolean {
+    if (!isoDate) return false;
+    const d = new Date(isoDate);
+    if (isNaN(d.getTime())) return false;
+    const ageDays = (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24);
+    return ageDays <= days;
+  }
+
+  /**
+   * GET /api/opportunities — surfaces ranked content opportunities by
+   * shelling out to gyst-ops/lib/decide.py. The script returns JSON.
+   */
+  app.get('/api/opportunities', async (c) => {
+    const limit = parseInt(c.req.query('limit') || '10', 10);
+    const minScore = parseFloat(c.req.query('min_score') || '0.30');
+    const decidePath = path.join(gystOpsPath(), 'lib', 'decide.py');
+    if (!fs.existsSync(decidePath)) {
+      return c.json({
+        error: `decide.py not found at ${decidePath}. Phase 2 of AI-board port may not be installed.`,
+        opportunities: [],
+        category_coverage: [],
+        knowledge_stats: { tactics: 0, frameworks: 0, patterns: 0, categories_with_tactics: 0, avg_confidence_across_all: 0 },
+      }, 200);
+    }
+    const { spawn } = await import('child_process');
+    return new Promise<Response>((resolve) => {
+      const proc = spawn('python3', [decidePath, '--json', '--limit', String(limit), '--min-score', String(minScore)], {
+        cwd: gystOpsPath(),
+      });
+      let stdout = '';
+      let stderr = '';
+      proc.stdout.on('data', (d) => { stdout += d.toString(); });
+      proc.stderr.on('data', (d) => { stderr += d.toString(); });
+      proc.on('close', (code) => {
+        if (code !== 0) {
+          resolve(c.json({ error: `decide.py exited ${code}: ${stderr.slice(0, 500)}` }, 500));
+          return;
+        }
+        try {
+          const parsed = JSON.parse(stdout);
+          resolve(c.json(parsed));
+        } catch (e) {
+          resolve(c.json({ error: `decide.py output not JSON: ${(e as Error).message}`, raw: stdout.slice(0, 500) }, 500));
+        }
+      });
+      proc.on('error', (err) => {
+        resolve(c.json({ error: `failed to spawn python3: ${err.message}` }, 500));
+      });
+    });
+  });
+
+  /**
+   * GET /api/pipeline — outreach pipeline diagnostic.
+   * Reads outreach/results/email-results.md (workspace-wide campaign stats)
+   * and returns parsed campaign rows + a verdict-bar string + summary stats.
+   */
+  app.get('/api/pipeline', (c) => {
+    const root = gystOpsPath();
+    const resultsFile = path.join(root, 'outreach', 'results', 'email-results.md');
+    if (!fs.existsSync(resultsFile)) {
+      return c.json({
+        verdict: 'No email-results.md yet. Run the Instantly puller (Mon/Wed/Fri 7am) to populate.',
+        verdict_tone: 'quiet',
+        campaigns: [],
+        summary: { total_campaigns: 0, total_sent: 0, total_replies: 0, baseline_reply_rate: 0 },
+      });
+    }
+    const text = fs.readFileSync(resultsFile, 'utf-8');
+    // Each campaign block starts with "## YYYY-MM-DD — name" and contains
+    // "Campaign ID:", "Status:", "Total leads:", "Opens:", "Replies:" lines.
+    const blocks = text.split('\n## ').slice(1);
+    const seen = new Map<string, any>();
+    for (const b of blocks) {
+      const lines = b.split('\n');
+      const header = lines[0] || '';
+      const headerMatch = header.match(/^(\d{4}-\d{2}-\d{2}) — (.+)$/);
+      if (!headerMatch) continue;
+      const date = headerMatch[1];
+      const name = headerMatch[2].trim();
+      const text = b;
+      const idMatch = text.match(/Campaign ID: `([^`]+)`/);
+      const totalMatch = text.match(/Total leads: (\d+)/);
+      const opensMatch = text.match(/Opens: (\d+) \(([\d.]+)%\)/);
+      const repliesMatch = text.match(/Replies: (\d+) \(([\d.]+)%\)/);
+      const statusMatch = text.match(/Status: (-?\d+)/);
+      if (!idMatch || !totalMatch || !opensMatch || !repliesMatch) continue;
+      const cid = idMatch[1];
+      const total = parseInt(totalMatch[1], 10);
+      const opens = parseInt(opensMatch[1], 10);
+      const replies = parseInt(repliesMatch[1], 10);
+      const openRate = parseFloat(opensMatch[2]) / 100;
+      const replyRate = parseFloat(repliesMatch[2]) / 100;
+      const statusCode = statusMatch ? parseInt(statusMatch[1], 10) : null;
+      // Dedup keep latest by date
+      const prev = seen.get(cid);
+      if (prev && prev.date >= date) continue;
+      seen.set(cid, {
+        campaign_id: cid,
+        name,
+        date,
+        total,
+        opens,
+        open_rate: openRate,
+        replies,
+        reply_rate: replyRate,
+        status_code: statusCode,
+      });
+    }
+    // Apply RECENT_WINDOW_DAYS filter — only show campaigns last scraped
+    // within the window. Default 30 days. Overridable via ?days=N query param.
+    const windowDays = recentWindowDays(c.req.query('days'));
+    const allCampaigns = Array.from(seen.values()).sort((a, b) => b.reply_rate - a.reply_rate);
+    const campaigns = allCampaigns.filter((camp) => isWithinDays(camp.date, windowDays));
+    const filteredOutCount = allCampaigns.length - campaigns.length;
+    const totalSent = campaigns.reduce((s, c) => s + c.total, 0);
+    const totalReplies = campaigns.reduce((s, c) => s + c.replies, 0);
+    const baselineReply = totalSent > 0 ? totalReplies / totalSent : 0;
+
+    // Classify each campaign with a verdict + reasoning
+    const classified = campaigns.map((camp) => {
+      const ratio = baselineReply > 0 ? camp.reply_rate / baselineReply : 0;
+      let pattern: string;
+      let verdict: string;
+      let why: string;
+      if (camp.reply_rate >= 0.04) {
+        pattern = 'Hot';
+        verdict = 'Scale';
+        why = `Reply rate ${(camp.reply_rate * 100).toFixed(1)}% is ${ratio.toFixed(1)}x the workspace baseline (${(baselineReply * 100).toFixed(2)}%). Among top performers.`;
+      } else if (camp.reply_rate >= baselineReply * 1.5 && camp.reply_rate >= 0.02) {
+        pattern = 'Warm';
+        verdict = 'Hold';
+        why = `Reply rate ${(camp.reply_rate * 100).toFixed(1)}% is ${ratio.toFixed(1)}x baseline. Solid but not hot — keep running, rotate creative.`;
+      } else if (camp.open_rate >= 0.25 && camp.reply_rate < 0.015) {
+        pattern = 'High-open Low-reply';
+        verdict = 'Rewrite body';
+        why = `Open rate ${(camp.open_rate * 100).toFixed(1)}% strong but reply rate ${(camp.reply_rate * 100).toFixed(2)}% weak. Subject works, body fails.`;
+      } else if (camp.reply_rate < 0.005 && camp.total >= 50) {
+        pattern = 'Stalled';
+        verdict = 'Kill or rewrite';
+        why = `Reply rate ${(camp.reply_rate * 100).toFixed(2)}% on ${camp.total} sends. Below noise floor.`;
+      } else {
+        pattern = 'Average';
+        verdict = 'Watch';
+        why = `Reply rate ${(camp.reply_rate * 100).toFixed(2)}% close to baseline (${(baselineReply * 100).toFixed(2)}%). Not a clear winner or loser.`;
+      }
+      return { ...camp, pattern, verdict, why };
+    });
+
+    const counts = {
+      hot: classified.filter((c) => c.pattern === 'Hot').length,
+      warm: classified.filter((c) => c.pattern === 'Warm').length,
+      high_open_low_reply: classified.filter((c) => c.pattern === 'High-open Low-reply').length,
+      stalled: classified.filter((c) => c.pattern === 'Stalled').length,
+      average: classified.filter((c) => c.pattern === 'Average').length,
+    };
+
+    let verdictText: string;
+    let verdictTone: 'normal' | 'urgent' | 'positive' | 'quiet';
+    if (counts.hot > 0 && counts.high_open_low_reply > 0) {
+      verdictText = `${counts.hot} hot to scale, ${counts.high_open_low_reply} high-open/low-reply to rewrite. ${counts.stalled} stalled.`;
+      verdictTone = 'normal';
+    } else if (counts.hot > 0) {
+      verdictText = `${counts.hot} hot campaign${counts.hot === 1 ? '' : 's'} to scale, ${counts.warm} warm to hold. ${counts.stalled} stalled.`;
+      verdictTone = 'positive';
+    } else if (counts.high_open_low_reply > 0) {
+      verdictText = `${counts.high_open_low_reply} high-open/low-reply campaign${counts.high_open_low_reply === 1 ? '' : 's'} need body rewrites. No hot performers.`;
+      verdictTone = 'urgent';
+    } else if (counts.stalled > 0) {
+      verdictText = `${counts.stalled} stalled, ${counts.average} average. No hot performers — fresh angle needed.`;
+      verdictTone = 'urgent';
+    } else {
+      verdictText = `${classified.length} campaigns tracked, all average. Workspace baseline ${(baselineReply * 100).toFixed(2)}%.`;
+      verdictTone = 'quiet';
+    }
+
+    return c.json({
+      verdict: verdictText,
+      verdict_tone: verdictTone,
+      campaigns: classified,
+      summary: {
+        total_campaigns: classified.length,
+        total_sent: totalSent,
+        total_replies: totalReplies,
+        baseline_reply_rate: baselineReply,
+        counts,
+      },
+      window: {
+        days: windowDays,
+        filtered_out: filteredOutCount,
+      },
+    });
+  });
+
+  /**
+   * GET /api/content-performance — content posts diagnostic.
+   * Reads content/results/post-performance.md and content/repurpose/results.md.
+   * Returns parsed entries + verdict + counts by status (Keep/Tweak/Kill/Pending).
+   */
+  app.get('/api/content-performance', (c) => {
+    const root = gystOpsPath();
+    const files = [
+      { path: path.join(root, 'content', 'results', 'post-performance.md'), source: 'post' },
+      { path: path.join(root, 'content', 'repurpose', 'results.md'), source: 'repurpose' },
+    ];
+    type PostEntry = {
+      date: string;
+      format: string;
+      title: string;
+      platform: string;
+      hook: string;
+      url: string;
+      visual: string;
+      metrics: string;
+      what_hit: string;
+      what_flopped: string;
+      verdict: string;
+      next_move: string;
+      source: string;
+    };
+    const entries: PostEntry[] = [];
+    for (const f of files) {
+      if (!fs.existsSync(f.path)) continue;
+      const text = fs.readFileSync(f.path, 'utf-8');
+      // Skip the worked-example block at the top (any ```markdown ... ``` fenced block)
+      const stripped = text.replace(/```[\s\S]*?```/g, '');
+      const blocks = stripped.split('\n## ').slice(1);
+      for (const b of blocks) {
+        const headerLine = (b.split('\n')[0] || '').trim();
+        const headerMatch = headerLine.match(/^(\d{4}-\d{2}-\d{2}) — \[?([\w-]+)\]? — "?(.+?)"?$/);
+        if (!headerMatch) continue;
+        const date = headerMatch[1];
+        const format = headerMatch[2];
+        const title = headerMatch[3];
+        const grab = (label: string): string => {
+          const m = b.match(new RegExp(`\\*\\*${label}:\\*\\*\\s*(.+)`));
+          return m ? m[1].trim() : '';
+        };
+        entries.push({
+          date,
+          format,
+          title,
+          platform: grab('Platform'),
+          hook: grab('Hook'),
+          url: grab('URL'),
+          visual: grab('Visual'),
+          metrics: grab('7-day metrics'),
+          what_hit: grab('What hit'),
+          what_flopped: grab('What flopped'),
+          verdict: grab('Verdict') || 'PENDING',
+          next_move: grab('Next move'),
+          source: f.source,
+        });
+      }
+    }
+    entries.sort((a, b) => b.date.localeCompare(a.date));
+    // Apply RECENT_WINDOW_DAYS filter — only show posts within the window.
+    const windowDays = recentWindowDays(c.req.query('days'));
+    const allEntries = entries;
+    const filteredEntries = entries.filter((e) => isWithinDays(e.date, windowDays));
+    const filteredOutCount = allEntries.length - filteredEntries.length;
+    entries.length = 0;
+    entries.push(...filteredEntries);
+    const counts = {
+      keep: entries.filter((e) => /^keep/i.test(e.verdict)).length,
+      tweak: entries.filter((e) => /^tweak/i.test(e.verdict)).length,
+      kill: entries.filter((e) => /^kill/i.test(e.verdict)).length,
+      pending: entries.filter((e) => /^pending/i.test(e.verdict) || !e.verdict).length,
+    };
+    let verdictText: string;
+    let verdictTone: 'normal' | 'urgent' | 'positive' | 'quiet';
+    if (entries.length === 0) {
+      verdictText = 'No posts logged yet. Use the log-post skill (DM the bot a URL) to start the loop.';
+      verdictTone = 'quiet';
+    } else if (counts.pending > 0 && counts.keep + counts.tweak + counts.kill === 0) {
+      verdictText = `${counts.pending} post${counts.pending === 1 ? '' : 's'} awaiting metrics. Use log-post-metrics skill 7+ days after publishing.`;
+      verdictTone = 'normal';
+    } else {
+      const top = entries.find((e) => /^keep/i.test(e.verdict));
+      if (top) {
+        verdictText = `${counts.keep} keep, ${counts.tweak} tweak, ${counts.kill} kill, ${counts.pending} pending. Top: ${top.format} "${top.title.slice(0, 40)}".`;
+        verdictTone = 'positive';
+      } else if (counts.kill > 0) {
+        verdictText = `${counts.kill} kill, ${counts.tweak} tweak, ${counts.pending} pending. No clear winners — fresh format needed.`;
+        verdictTone = 'urgent';
+      } else {
+        verdictText = `${entries.length} posts tracked. ${counts.pending} awaiting metrics, ${counts.keep + counts.tweak + counts.kill} reviewed.`;
+        verdictTone = 'normal';
+      }
+    }
+    return c.json({
+      verdict: verdictText,
+      verdict_tone: verdictTone,
+      entries,
+      summary: { total: entries.length, counts },
+      window: {
+        days: windowDays,
+        filtered_out: filteredOutCount,
+      },
+    });
+  });
+
+  /**
+   * GET /api/ads/diagnostic — runs the Meta Ads classifier and returns the
+   * full diagnostic JSON (verdict bar + money signal + per-ad rows).
+   *
+   * Cached at the Python layer (15min insights, 1h ad list). Pass ?no_cache=1
+   * to force fresh.
+   */
+  app.get('/api/ads/diagnostic', async (c) => {
+    const noCache = c.req.query('no_cache') === '1';
+    const vertical = c.req.query('vertical');
+    const classifierPath = path.join(gystOpsPath(), 'ads', 'diagnostic', 'classifier.py');
+    if (!fs.existsSync(classifierPath)) {
+      return c.json({
+        error: `classifier.py not found at ${classifierPath}`,
+        verdict_bar: { text: 'Classifier missing', tone: 'urgent' },
+        ads: [],
+      }, 200);
+    }
+    const args = [classifierPath];
+    if (noCache) args.push('--no-cache');
+    if (vertical) args.push(`--vertical=${vertical}`);
+    const { spawn } = await import('child_process');
+    return new Promise<Response>((resolve) => {
+      const proc = spawn('python3', args, { cwd: gystOpsPath() });
+      let stdout = '';
+      let stderr = '';
+      proc.stdout.on('data', (d) => { stdout += d.toString(); });
+      proc.stderr.on('data', (d) => { stderr += d.toString(); });
+      proc.on('close', (code) => {
+        if (code !== 0 && !stdout) {
+          resolve(c.json({
+            error: `classifier exited ${code}: ${stderr.slice(0, 500)}`,
+            verdict_bar: { text: 'Classifier error', tone: 'urgent' },
+            ads: [],
+          }, 500));
+          return;
+        }
+        try {
+          resolve(c.json(JSON.parse(stdout)));
+        } catch (e) {
+          resolve(c.json({
+            error: `classifier output not JSON: ${(e as Error).message}`,
+            raw: stdout.slice(0, 500),
+            verdict_bar: { text: 'Classifier parse error', tone: 'urgent' },
+            ads: [],
+          }, 500));
+        }
+      });
+      proc.on('error', (err) => {
+        resolve(c.json({
+          error: `failed to spawn python3: ${err.message}`,
+          verdict_bar: { text: 'Classifier spawn error', tone: 'urgent' },
+          ads: [],
+        }, 500));
+      });
+    });
+  });
+
+  /**
+   * GET /api/configs/list — returns the list of editable client configs.
+   * Currently: voice.md, icp-profiles.md, brand reference. Read-only in
+   * operator mode (Rob viewing client's configs); editable in client mode.
+   */
+  app.get('/api/configs/list', (c) => {
+    const refsDir = path.join(gystOpsPath(), 'references');
+    const knownConfigs = [
+      { key: 'voice', label: 'Voice rules', file: 'voice.md' },
+      { key: 'icp', label: 'ICP profiles', file: 'icp-profiles.md' },
+      { key: 'brand', label: 'Brand reference', file: 'gyst-brand-reference.md' },
+      { key: 'learnings', label: 'Learnings (read-only)', file: 'learnings.md' },
+    ];
+    const out = knownConfigs.map((cfg) => {
+      const filePath = path.join(refsDir, cfg.file);
+      const exists = fs.existsSync(filePath);
+      const stat = exists ? fs.statSync(filePath) : null;
+      return {
+        ...cfg,
+        path: filePath,
+        exists,
+        size: stat?.size || 0,
+        updated_at: stat ? stat.mtime.toISOString() : null,
+      };
+    });
+    return c.json({ configs: out });
+  });
+
+  /**
+   * GET /api/configs/:key — fetch the content of a specific config file.
+   */
+  app.get('/api/configs/:key', (c) => {
+    const key = c.req.param('key');
+    const refsDir = path.join(gystOpsPath(), 'references');
+    const fileMap: Record<string, string> = {
+      voice: 'voice.md',
+      icp: 'icp-profiles.md',
+      brand: 'gyst-brand-reference.md',
+      learnings: 'learnings.md',
+    };
+    const filename = fileMap[key];
+    if (!filename) return c.json({ error: `Unknown config key: ${key}` }, 404);
+    const filePath = path.join(refsDir, filename);
+    if (!fs.existsSync(filePath)) return c.json({ error: `Config file not found: ${filename}`, content: '' }, 404);
+    return c.json({
+      key,
+      filename,
+      path: filePath,
+      content: fs.readFileSync(filePath, 'utf-8'),
+      updated_at: fs.statSync(filePath).mtime.toISOString(),
+    });
+  });
+
+  // ── Phase 5.0 module system endpoints ───────────────────────────────────
+  // The Universal Module System: every page can have unlockable modules.
+  // Modules register via src/modules/registry.ts, evaluate milestones via
+  // unlock-engine.ts, and surface to the frontend through these endpoints.
+
+  /**
+   * GET /api/modules/state?page=<page>
+   * Returns module state for ALL modules on the requested page (locked +
+   * unlocked). Frontend renders the locked rail + unlocked module sections.
+   */
+  app.get('/api/modules/state', async (c) => {
+    const pageParam = c.req.query('page') as ModulePage | undefined;
+    if (!pageParam) {
+      return c.json({ error: 'page query param required' }, 400);
+    }
+    const states = await getModulesForPage(pageParam);
+    return c.json({ page: pageParam, modules: states });
+  });
+
+  /**
+   * GET /api/modules/:name/output
+   * Returns the module's classifier output JSON (Phase 5.2). Each module
+   * defines its own data shape; the frontend module renderer reads this.
+   * Returns 403 if module is not unlocked for the account.
+   */
+  app.get('/api/modules/:name/output', async (c) => {
+    const name = c.req.param('name');
+    const def = getModule(name);
+    if (!def) return c.json({ error: `Module not registered: ${name}` }, 404);
+    if (!def.classifier) return c.json({ error: `Module has no classifier: ${name}` }, 501);
+
+    // Confirm unlocked before computing output (prevents leaking module
+    // data to clients before they earn it via milestone OR operator unlock)
+    const states = await getModulesForPage(def.page);
+    const state = states.find((s) => s.module_name === name);
+    if (!state?.unlocked) {
+      return c.json({ error: `Module not unlocked: ${name}`, locked: true }, 403);
+    }
+
+    try {
+      const output = await Promise.resolve(def.classifier('default'));
+      return c.json({ module: name, output });
+    } catch (e) {
+      return c.json({ error: `Classifier failed: ${(e as Error).message}` }, 500);
+    }
+  });
+
+  /**
+   * POST /api/modules/:name/operator-unlock
+   * Operator-only override. Bypasses milestone check, marks the module
+   * unlocked immediately. ACL middleware blocks this in CLIENT_MODE.
+   */
+  app.post('/api/modules/:name/operator-unlock', async (c) => {
+    const name = c.req.param('name');
+    if (!getModule(name)) {
+      return c.json({ error: `Module not registered: ${name}` }, 404);
+    }
+    const row = operatorUnlock(name);
+    if (!row) return c.json({ error: 'Failed to unlock' }, 500);
+    return c.json({ ok: true, module: row });
+  });
+
+  /**
+   * POST /api/modules/:name/tour-seen
+   * Marks the first-appearance tour as seen for this module. Frontend
+   * calls this after the user dismisses the tour, so it doesn't re-show.
+   */
+  app.post('/api/modules/:name/tour-seen', async (c) => {
+    const name = c.req.param('name');
+    if (!getModule(name)) {
+      return c.json({ error: `Module not registered: ${name}` }, 404);
+    }
+    markTourSeen(name);
+    return c.json({ ok: true });
+  });
+
+  /**
+   * POST /api/actions/log
+   * Records a suggested action being taken. Body:
+   *   { page, action_type, action_target, taken_at?, outcome_json? }
+   * Powers Impact Tracker module + cross-page unlock criteria.
+   */
+  app.post('/api/actions/log', async (c) => {
+    let body: { page?: string; action_type?: string; action_target?: string; taken_at?: number; outcome_json?: Record<string, unknown> };
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: 'Invalid JSON body' }, 400);
+    }
+    if (!body.page || !body.action_type || !body.action_target) {
+      return c.json({ error: 'page, action_type, action_target required' }, 400);
+    }
+    logAction({
+      page: body.page,
+      action_type: body.action_type,
+      action_target: body.action_target,
+      taken_at: body.taken_at,
+      outcome_json: body.outcome_json,
+    });
+    return c.json({ ok: true });
+  });
+
   app.get('*', (c) => {
     const path = new URL(c.req.url).pathname;
     // /api/* would have been gated earlier, but if it slipped through
@@ -2961,7 +3582,7 @@ export function buildDashboardApp(botApi?: Api<RawApi>): Hono {
       return c.text('Dashboard not built. Run `npm run build`.', 503);
     }
     const html = fs.readFileSync(newDashboardIndex, 'utf-8');
-    return c.html(html);
+    return c.html(injectBranding(html));
   });
 
   return app;

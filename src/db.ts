@@ -407,6 +407,48 @@ function createSchema(database: Database.Database): void {
       total_cost  REAL NOT NULL DEFAULT 0,
       created_at  INTEGER NOT NULL DEFAULT (strftime('%s','now'))
     );
+
+    -- Phase 5.0: Module unlock state. Tracks which modules are unlocked
+    -- for each account (single-account claudeclaw deploys use 'default').
+    -- account_id + module_name forms the dedup key.
+    CREATE TABLE IF NOT EXISTS module_unlock_state (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      account_id      TEXT NOT NULL DEFAULT 'default',
+      module_name     TEXT NOT NULL,
+      page            TEXT NOT NULL,
+      unlocked_at     INTEGER,
+      unlocked_by     TEXT,        -- 'earned' (milestone hit) or 'operator' (manual override)
+      milestone_progress_json TEXT NOT NULL DEFAULT '{}',
+      created_at      INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+      updated_at      INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+      UNIQUE(account_id, module_name)
+    );
+    CREATE INDEX IF NOT EXISTS idx_module_unlock_account ON module_unlock_state(account_id, page);
+
+    -- Phase 5.0: Action log. Records when a verdict surfaced by the
+    -- dashboard was acted on. Powers Impact Tracker + earned-unlock criteria.
+    CREATE TABLE IF NOT EXISTS action_log (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      account_id      TEXT NOT NULL DEFAULT 'default',
+      page            TEXT NOT NULL,
+      action_type     TEXT NOT NULL,     -- e.g. 'scale_ad', 'pause_campaign', 'ship_post'
+      action_target   TEXT NOT NULL,     -- the ad_id, campaign_id, post_id etc
+      suggested_at    INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+      taken_at        INTEGER,
+      outcome_json    TEXT NOT NULL DEFAULT '{}'
+    );
+    CREATE INDEX IF NOT EXISTS idx_action_log_account ON action_log(account_id, page, suggested_at DESC);
+
+    -- Phase 5.0: Per-account per-module tour seen state.
+    -- Module tour fires ONCE per (account, module) the first time the
+    -- module appears in the UI after being unlocked.
+    CREATE TABLE IF NOT EXISTS module_tour_state (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      account_id      TEXT NOT NULL DEFAULT 'default',
+      module_name     TEXT NOT NULL,
+      tour_seen_at    INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+      UNIQUE(account_id, module_name)
+    );
   `);
 }
 

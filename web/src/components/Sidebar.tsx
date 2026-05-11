@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'wouter-preact';
 import { Search, ChevronDown, X } from 'lucide-preact';
-import { ROUTES, SECTION_LABEL, type RouteSection } from '@/lib/routes';
+import { SECTION_LABEL, visibleRoutes, type RouteSection } from '@/lib/routes';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { commandPaletteOpen } from '@/lib/command-palette';
 import { chatUnread } from '@/lib/chat-stream';
@@ -15,11 +15,20 @@ import {
 
 const SECTIONS: RouteSection[] = ['workspace', 'intelligence', 'collaborate', 'configure'];
 
+interface InfoResponse {
+  client_mode?: boolean;
+}
+
 export function Sidebar() {
   const [pathname] = useLocation();
   const collapsed = collapsedSections.value;
   const modLabel = modKeyLabel();
   const open = sidebarOpen.value;
+  // Phase 4.2: read client_mode from /api/info to filter operator pages.
+  // Defaults to false (full operator nav) on slow load — same UX as before.
+  const info = useFetch<InfoResponse>('/api/info', 60_000);
+  const clientMode = info.data?.client_mode === true;
+  const routes = visibleRoutes(clientMode);
 
   // Mobile: fixed drawer that slides in from the left. Desktop (>=md):
   // always-visible inline column. Tailwind's `md:` prefix flips between
@@ -58,7 +67,7 @@ export function Sidebar() {
 
       <nav class="flex-1 overflow-y-auto px-2 pb-3">
         {SECTIONS.map((section) => {
-          const items = ROUTES.filter((r) => r.section === section);
+          const items = routes.filter((r) => r.section === section);
           if (items.length === 0) return null;
           const isCollapsed = collapsed.has(section);
           return (

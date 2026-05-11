@@ -127,10 +127,10 @@ export function initOAuthHealthCheck(sender: Sender): void {
   const alertThresholdMs = getAlertThresholdMs();
 
   // Initial check after 10s (let bot fully start)
-  setTimeout(() => void checkOAuthHealth(sender), 10_000);
+  setTimeout(() => void checkOAuthHealth(sender), 10_000).unref();
 
-  // Periodic checks
-  setInterval(() => void checkOAuthHealth(sender), checkIntervalMs);
+  // Periodic checks — unref so the timer doesn't block shutdown
+  setInterval(() => void checkOAuthHealth(sender), checkIntervalMs).unref();
 
   logger.info(
     { intervalMin: checkIntervalMs / 60_000, alertThresholdHours: alertThresholdMs / (60 * 60 * 1000) },

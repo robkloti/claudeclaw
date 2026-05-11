@@ -1,8 +1,11 @@
 import { signal } from '@preact/signals';
-import { ROUTES } from './routes';
+import { visibleRoutes } from './routes';
 import { setTheme } from './theme';
 
 export const commandPaletteOpen = signal(false);
+// Phase 4.2: when CLIENT_MODE=true, command palette also hides operator
+// actions. Set by main.tsx after fetching /api/info.
+export const commandPaletteClientMode = signal(false);
 
 export interface PaletteAction {
   id: string;
@@ -16,7 +19,7 @@ export interface PaletteAction {
 // Built-in actions. Page-specific actions can be added later by calling
 // registerActions(...) on mount and unregisterActions(...) on unmount.
 export function buildActions(): PaletteAction[] {
-  const nav: PaletteAction[] = ROUTES.map((r) => ({
+  const nav: PaletteAction[] = visibleRoutes(commandPaletteClientMode.value).map((r) => ({
     id: 'nav:' + r.path,
     label: r.label,
     hint: r.shortcut ? r.shortcut.toUpperCase() : undefined,
