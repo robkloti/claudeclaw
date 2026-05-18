@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { useLocation } from 'wouter-preact';
 import { Plus, Wand2, Trash2, X, History, Inbox, GripVertical, Maximize2, Minimize2, LayoutGrid as LayoutIcon, Check } from 'lucide-preact';
 import { PageHeader } from '@/components/PageHeader';
+import { AtelierHero } from '@/components/AtelierHero';
 import { Pill, StatusDot } from '@/components/Pill';
 import { PageState } from '@/components/PageState';
 import { Modal, Drawer } from '@/components/Modal';
@@ -125,14 +126,27 @@ export function MissionControl() {
     setMissionColumnOrder(next);
   }
 
+  const totalTasks = tasks.data?.tasks?.length ?? 0;
+  const runningAgents = orderedAgents.filter((a) => a.running).length;
+  const totalAgents = orderedAgents.length;
+
   return (
     <div class="flex flex-col h-full">
-      <PageHeader
+      <AtelierHero
         title={headerTitle}
+        breadcrumb={['~/command-center', 'overview', 'live']}
+        stats={[
+          { label: 'ACTIVE TASKS', big: String(totalActive), sub: `${inbox.length} inbox · ${totalTasks} total` },
+          { label: 'AGENTS RUNNING', big: `${runningAgents} / ${totalAgents}`, sub: `${Math.max(0, totalAgents - runningAgents)} offline`, tone: runningAgents < totalAgents ? 'muted' : 'ok' },
+          { label: 'ASSIGNED', big: String(totalTasks - inbox.length), sub: `${inbox.length} unassigned`, tone: inbox.length > 0 ? 'warn' : 'ok' },
+        ]}
+      />
+      <PageHeader
+        title=""
         actions={
           <>
             <span class="text-[11px] text-[var(--color-text-muted)] tabular-nums mr-2">
-              {totalActive} active · {inbox.length} unassigned · {tasks.data?.tasks?.length ?? 0} total
+              {totalActive} active · {inbox.length} unassigned · {totalTasks} total
             </span>
             <LayoutMenu agents={orderedAgents} />
             <button

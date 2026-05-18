@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'preact/hooks';
 import { lazy, Suspense } from 'preact/compat';
 import { Brain as BrainIcon, Box, List as ListIcon } from 'lucide-preact';
 import { PageHeader, Tab } from '@/components/PageHeader';
+import { AtelierHero } from '@/components/AtelierHero';
 import { PageState } from '@/components/PageState';
 import { PrivacyToggle } from '@/components/PrivacyToggle';
 import { BrainGraph } from '@/components/BrainGraph';
@@ -79,10 +80,21 @@ export function HiveMind() {
     setRevealed(next);
   }
 
+  const lobesActive = new Set(entries.map((e) => (e as any).lobe || (e as any).agent_id || 'main')).size;
+
   return (
     <div class="flex flex-col h-full">
-      <PageHeader
+      <AtelierHero
         title="Hive Mind"
+        breadcrumb={['~/hive-mind', 'events', 'live']}
+        stats={[
+          { label: 'EVENTS', big: String(entries.length), sub: 'rolling window' },
+          { label: 'LOBES ACTIVE', big: String(lobesActive), sub: `${allAgents.length} agents reporting`, tone: 'accent' },
+          { label: 'FILTER', big: filter === 'all' ? 'all' : filter, sub: filter === 'all' ? 'showing everything' : 'isolated', tone: filter === 'all' ? 'muted' : 'accent' },
+        ]}
+      />
+      <PageHeader
+        title=""
         actions={
           <>
             <span class="text-[11px] text-[var(--color-text-muted)] tabular-nums">{entries.length} entries</span>

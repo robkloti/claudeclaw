@@ -8,7 +8,7 @@
  * Phase 4.3 (full). Reads /api/pipeline which parses outreach/results/email-results.md.
  */
 
-import { PageHeader } from '@/components/PageHeader';
+import { AtelierHero } from '@/components/AtelierHero';
 import { PageState } from '@/components/PageState';
 import { VerdictBar } from '@/components/VerdictBar';
 import { WhyExpand } from '@/components/WhyExpand';
@@ -57,9 +57,40 @@ const PATTERN_COLOR: Record<string, string> = {
 export function Pipeline() {
   const { data, loading, error } = useFetch<PipelineResponse>('/api/pipeline', 60_000);
 
+  const replyRate = data?.summary?.total_sent
+    ? ((data.summary.total_replies / data.summary.total_sent) * 100).toFixed(1) + '%'
+    : '–';
+  const baselineRate = data?.summary?.baseline_reply_rate
+    ? (data.summary.baseline_reply_rate * 100).toFixed(1) + '%'
+    : null;
+  const hotCount = data?.summary?.counts?.['Hot'] ?? 0;
+  const stalledCount = data?.summary?.counts?.['Stalled'] ?? 0;
+
   return (
     <div class="flex flex-col h-full">
-      <PageHeader title="Pipeline" />
+      <AtelierHero
+        title="Sales Pipeline"
+        breadcrumb={['~/outreach', 'campaigns', 'live']}
+        stats={[
+          {
+            label: 'CAMPAIGNS',
+            big: String(data?.summary?.total_campaigns ?? 0),
+            sub: `last ${data?.window?.days ?? 30} days`,
+          },
+          {
+            label: 'REPLY RATE',
+            big: replyRate,
+            sub: baselineRate ? `baseline ${baselineRate}` : 'no baseline yet',
+            tone: 'accent',
+          },
+          {
+            label: 'HOT · STALLED',
+            big: `${hotCount} · ${stalledCount}`,
+            sub: hotCount > 0 ? 'follow up today' : stalledCount > 0 ? 'review the stalled' : 'queue is calm',
+            tone: hotCount > 0 ? 'ok' : stalledCount > 0 ? 'warn' : 'muted',
+          },
+        ]}
+      />
       <div class="flex-1 overflow-y-auto px-6 py-4">
         <VerdictBar
           text={data?.verdict || ''}
@@ -94,16 +125,16 @@ export function Pipeline() {
         )}
 
         {data?.campaigns && data.campaigns.length > 0 && (
-          <div class="overflow-x-auto rounded-md border border-[var(--color-border)] bg-[var(--color-card)]">
+          <div class="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-card)]">
             <table class="w-full text-[13px]">
-              <thead class="text-[11px] text-[var(--color-text-faint)] uppercase tracking-wider">
+              <thead style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: 2, color: 'var(--color-text-muted)', fontWeight: 600 }}>
                 <tr class="border-b border-[var(--color-border)]">
-                  <th class="text-left px-3 py-2 font-medium">Pattern</th>
-                  <th class="text-left px-3 py-2 font-medium">Campaign</th>
-                  <th class="text-right px-3 py-2 font-medium">Leads</th>
-                  <th class="text-right px-3 py-2 font-medium">Open</th>
-                  <th class="text-right px-3 py-2 font-medium">Reply</th>
-                  <th class="text-left px-3 py-2 font-medium">Verdict</th>
+                  <th class="text-left px-3 py-2.5">PATTERN</th>
+                  <th class="text-left px-3 py-2.5">CAMPAIGN</th>
+                  <th class="text-right px-3 py-2.5">LEADS</th>
+                  <th class="text-right px-3 py-2.5">OPEN</th>
+                  <th class="text-right px-3 py-2.5">REPLY</th>
+                  <th class="text-left px-3 py-2.5">VERDICT</th>
                 </tr>
               </thead>
               <tbody>

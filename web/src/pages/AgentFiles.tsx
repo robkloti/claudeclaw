@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'preact/compat';
 import { useLocation, useRoute } from 'wouter-preact';
 import { Save, RotateCcw, ArrowLeft, AlertTriangle, RefreshCw, Power, History as HistoryIcon, Eye, Undo2 } from 'lucide-preact';
 import { PageHeader, Tab } from '@/components/PageHeader';
+import { AtelierHero } from '@/components/AtelierHero';
 import { PageState } from '@/components/PageState';
 import { Drawer } from '@/components/Modal';
 import { apiGet, apiPost, apiPut } from '@/lib/api';
@@ -135,9 +136,18 @@ export function AgentFiles() {
 
   return (
     <div class="flex flex-col h-full">
+      <AtelierHero
+        title={`Agent ${agentId}`}
+        breadcrumb={['~/agents', agentId, 'files']}
+        stats={[
+          { label: 'EDITING', big: tab === 'persona' ? 'CLAUDE.md' : 'agent.yaml', sub: tab === 'persona' ? 'persona + routing' : 'config + bot token', tone: 'accent' },
+          { label: 'STATUS', big: dirty ? 'unsaved' : 'saved', sub: dirty ? 'cmd-S to save' : 'all changes committed', tone: dirty ? 'warn' : 'ok' },
+          { label: 'AUDIT', big: 'on', sub: 'every save → git commit', tone: 'ok' },
+        ]}
+      />
       <PageHeader
-        title={`Agent files · ${agentId}`}
-        breadcrumb="Agents"
+        title=""
+        breadcrumb=""
         tabs={
           <>
             <button

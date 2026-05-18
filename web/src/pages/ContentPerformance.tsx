@@ -9,7 +9,7 @@
  * content/results/post-performance.md + content/repurpose/results.md.
  */
 
-import { PageHeader } from '@/components/PageHeader';
+import { AtelierHero } from '@/components/AtelierHero';
 import { PageState } from '@/components/PageState';
 import { VerdictBar } from '@/components/VerdictBar';
 import { WhyExpand } from '@/components/WhyExpand';
@@ -83,9 +83,37 @@ export function ContentPerformance() {
       }));
   })();
 
+  const counts = data?.summary?.counts;
+  const keep = counts?.keep ?? 0;
+  const tweak = counts?.tweak ?? 0;
+  const kill = counts?.kill ?? 0;
+  const pending = counts?.pending ?? 0;
+
   return (
     <div class="flex flex-col h-full">
-      <PageHeader title="Content Performance" />
+      <AtelierHero
+        title="Content Performance"
+        breadcrumb={['~/content', 'results', 'live']}
+        stats={[
+          {
+            label: 'POSTS',
+            big: String(data?.summary?.total ?? 0),
+            sub: `last ${data?.window?.days ?? 30} days`,
+          },
+          {
+            label: 'KEEP · TWEAK',
+            big: `${keep} · ${tweak}`,
+            sub: keep > 0 ? 'repurpose the wins' : 'pending verdicts',
+            tone: keep > 0 ? 'ok' : 'muted',
+          },
+          {
+            label: 'KILL · PENDING',
+            big: `${kill} · ${pending}`,
+            sub: kill > 0 ? 'cut what flopped' : 'rolling baseline',
+            tone: kill > 0 ? 'err' : 'muted',
+          },
+        ]}
+      />
       <div class="flex-1 overflow-y-auto px-6 py-4">
         <VerdictBar
           text={data?.verdict || ''}
@@ -122,11 +150,27 @@ export function ContentPerformance() {
           {grouped.map((group) => (
             <section key={group.key}>
               <h3
-                class="text-[11px] uppercase tracking-wider mb-2 flex items-center gap-2"
-                style={{ color: group.color }}
+                class="mb-3 flex items-baseline gap-3"
+                style={{
+                  fontFamily: 'var(--font-serif)',
+                  fontSize: 24,
+                  fontWeight: 400,
+                  letterSpacing: '-0.3px',
+                  color: 'var(--color-text)',
+                }}
               >
-                <span>{group.label}</span>
-                <span class="text-[var(--color-text-faint)]">({group.entries.length})</span>
+                <span style={{ fontStyle: 'italic' }}>{group.label}</span>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 11,
+                    letterSpacing: 1.5,
+                    color: group.color,
+                    fontWeight: 600,
+                  }}
+                >
+                  {group.entries.length} POSTS
+                </span>
               </h3>
               <div class="space-y-2">
                 {group.entries.map((e) => (
@@ -147,8 +191,8 @@ export function ContentPerformance() {
 function PostCard({ entry, accent }: { entry: PostEntry; accent: string }) {
   return (
     <div
-      class="p-3 rounded-md border-l-4 border border-[var(--color-border)] bg-[var(--color-card)]"
-      style={{ borderLeftColor: accent }}
+      class="p-4 rounded-xl border-l-4 border border-[var(--color-border)] bg-[var(--color-card)]"
+      style={{ borderLeftColor: accent, borderLeftWidth: '3px' }}
     >
       <div class="flex items-start justify-between gap-3">
         <div class="flex-1 min-w-0">
@@ -169,9 +213,15 @@ function PostCard({ entry, accent }: { entry: PostEntry; accent: string }) {
               </>
             )}
           </div>
-          <div class="text-[14px] font-medium text-[var(--color-text)] mt-1">{entry.title}</div>
+          <div
+            class="text-[var(--color-text)] mt-1"
+            style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 400, lineHeight: 1.3 }}
+          >{entry.title}</div>
           {entry.hook && entry.hook !== entry.title && (
-            <div class="text-[12.5px] text-[var(--color-text-muted)] mt-1 italic">"{entry.hook}"</div>
+            <div
+              class="text-[var(--color-text-muted)] mt-1.5"
+              style={{ fontFamily: 'var(--font-serif)', fontSize: 14, fontStyle: 'italic', lineHeight: 1.4 }}
+            >"{entry.hook}"</div>
           )}
         </div>
         {entry.url && (

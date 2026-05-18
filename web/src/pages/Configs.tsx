@@ -7,7 +7,7 @@
  */
 
 import { useState } from 'preact/hooks';
-import { PageHeader } from '@/components/PageHeader';
+import { AtelierHero } from '@/components/AtelierHero';
 import { PageState } from '@/components/PageState';
 import { VerdictBar } from '@/components/VerdictBar';
 import { LockedModuleRail } from '@/components/LockedModuleRail';
@@ -58,9 +58,19 @@ export function Configs() {
     };
   })();
 
+  const configCount = list.data?.configs?.length ?? 0;
+
   return (
     <div class="flex flex-col h-full">
-      <PageHeader title="Configs" />
+      <AtelierHero
+        title="Workspace Configs"
+        breadcrumb={['~/configs', 'references', 'editor']}
+        stats={[
+          { label: 'CONFIG FILES', big: String(configCount), sub: 'voice · ICP · brand · etc' },
+          { label: 'EDIT MODE', big: 'live', sub: 'changes commit to git', tone: 'ok' },
+          { label: 'AUDIT', big: 'on', sub: 'every save logged', tone: 'accent' },
+        ]}
+      />
       <div class="flex-1 overflow-y-auto px-6 py-4">
         <VerdictBar text={verdict.text} tone={verdict.tone} icon={<FileText size={18} />} loading={list.loading} />
 

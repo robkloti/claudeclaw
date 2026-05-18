@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { ShieldAlert, ShieldCheck } from 'lucide-preact';
 import { PageHeader, Tab } from '@/components/PageHeader';
+import { AtelierHero } from '@/components/AtelierHero';
 import { PageState } from '@/components/PageState';
 import { apiGet } from '@/lib/api';
 import { formatRelativeTime } from '@/lib/format';
@@ -60,10 +61,21 @@ export function Audit() {
 
   const agentIds = knownAgents;
 
+  const blockedCount = items.filter((i) => i.blocked).length;
+
   return (
     <div class="flex flex-col h-full">
+      <AtelierHero
+        title="Security Audit"
+        breadcrumb={['~/audit', 'log', 'live']}
+        stats={[
+          { label: 'ENTRIES', big: String(total ?? 0), sub: `showing ${items.length}` },
+          { label: 'BLOCKED', big: String(blockedCount), sub: blockedCount > 0 ? 'review actions taken' : 'all clear', tone: blockedCount > 0 ? 'err' : 'ok' },
+          { label: 'AGENTS TRACKED', big: String(agentIds.length), sub: agentFilter === 'all' ? 'all agents' : `filter: ${agentFilter}`, tone: agentFilter !== 'all' ? 'accent' : 'muted' },
+        ]}
+      />
       <PageHeader
-        title="Audit"
+        title=""
         actions={<span class="text-[11px] text-[var(--color-text-muted)] tabular-nums">{filter === 'blocked' ? items.length + ' blocked' : total + ' entries'}</span>}
         tabs={
           <>

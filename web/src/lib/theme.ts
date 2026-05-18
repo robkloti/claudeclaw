@@ -6,6 +6,9 @@ const STORAGE_KEY = 'claudeclaw.theme';
 const ACCENT_KEY = 'claudeclaw.theme.customAccent';
 const SCALE_KEY = 'claudeclaw.uiScale';
 const SHOW_COSTS_KEY = 'claudeclaw.showCosts';
+const MODE_KEY = 'claudeclaw.mode';
+
+export type ThemeMode = 'dark' | 'light' | 'auto';
 
 function loadInitial(): ThemeName {
   try {
@@ -33,6 +36,23 @@ function loadScale(): number {
   return 1.0;
 }
 
+function loadMode(): ThemeMode {
+  try {
+    const v = localStorage.getItem(MODE_KEY);
+    if (v === 'dark' || v === 'light' || v === 'auto') return v;
+  } catch {}
+  return 'auto';
+}
+
+function resolveMode(m: ThemeMode): 'dark' | 'light' {
+  if (m === 'auto') {
+    try {
+      return matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    } catch { return 'dark'; }
+  }
+  return m;
+}
+
 function loadShowCosts(): boolean {
   try {
     const v = localStorage.getItem(SHOW_COSTS_KEY);
@@ -56,6 +76,13 @@ export const customAccent = signal<string | null>(loadCustomAccent());
  *  scale, which would clip overflows). 1.0 is the design baseline;
  *  most users will want 1.1–1.25. */
 export const uiScale = signal<number>(loadScale());
+
+/** Light/dark/auto mode for brand configs that ship both palettes
+ *  (Atelier-style). Stored in localStorage. The brand-injector emits
+ *  `[data-mode="dark"]` and `[data-mode="light"]` blocks from the brand
+ *  config; this signal toggles `data-mode` on <html> to swap. Single-mode
+ *  brand files are unaffected (no mode blocks emitted, attr does nothing). */
+export const themeMode = signal<ThemeMode>(loadMode());
 
 /** Whether to surface per-agent / per-session cost figures. Default OFF
  *  because most users are on the Claude Code subscription path where
@@ -110,6 +137,33 @@ effect(() => {
   try { localStorage.setItem(SHOW_COSTS_KEY, showCosts.value ? 'on' : 'off'); } catch {}
 });
 
+// Resolve auto → dark|light, set data-mode on <html>, persist choice.
+// Picks up system pref changes when in auto mode without a reload.
+let autoMq: MediaQueryList | null = null;
+let autoListener: (() => void) | null = null;
+effect(() => {
+  const m = themeMode.value;
+  const resolved = resolveMode(m);
+  document.documentElement.setAttribute('data-mode', resolved);
+  try { localStorage.setItem(MODE_KEY, m); } catch {}
+
+  // Re-bind system pref listener only when in auto.
+  if (autoMq && autoListener) {
+    autoMq.removeEventListener('change', autoListener);
+    autoMq = null; autoListener = null;
+  }
+  if (m === 'auto') {
+    try {
+      autoMq = matchMedia('(prefers-color-scheme: light)');
+      autoListener = () => {
+        const r = resolveMode('auto');
+        document.documentElement.setAttribute('data-mode', r);
+      };
+      autoMq.addEventListener('change', autoListener);
+    } catch {}
+  }
+});
+
 export function setTheme(next: ThemeName) {
   theme.value = next;
 }
@@ -125,6 +179,10 @@ export function setUiScale(next: number) {
 
 export function setShowCosts(next: boolean) {
   showCosts.value = next;
+}
+
+export function setThemeMode(next: ThemeMode) {
+  themeMode.value = next;
 }
 
 // Lighten/darken a hex color by `pct` percent (-100..100). Used to

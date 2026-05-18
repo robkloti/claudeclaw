@@ -12,7 +12,7 @@
  * (manual call from the WhyExpand action button — Phase 5.2).
  */
 
-import { PageHeader } from '@/components/PageHeader';
+import { AtelierHero } from '@/components/AtelierHero';
 import { PageState } from '@/components/PageState';
 import { VerdictBar } from '@/components/VerdictBar';
 import { WhyExpand } from '@/components/WhyExpand';
@@ -91,9 +91,38 @@ export function MetaAdsDashboard() {
       })
     : [];
 
+  const proven = data?.summary?.patterns?.['Proven Machine'] ?? 0;
+  const darkHorse = data?.summary?.patterns?.['Dark Horse'] ?? 0;
+  const stalled = data?.summary?.patterns?.['Stalled'] ?? 0;
+  const under = data?.summary?.patterns?.['Underperformer'] ?? 0;
+  const totalSpend = data?.ads?.reduce((s, a) => s + (a.metrics?.daily_spend ?? 0), 0) ?? 0;
+  const ctrPct = data?.summary?.median_ctr ? (data.summary.median_ctr * 100).toFixed(2) + '%' : '–';
+
   return (
     <div class="flex flex-col h-full">
-      <PageHeader title="Meta Ads" />
+      <AtelierHero
+        title="Meta Ads"
+        breadcrumb={['~/ads', 'meta', 'live']}
+        stats={[
+          {
+            label: 'ACTIVE ADS',
+            big: String(data?.summary?.total_active_ads ?? 0),
+            sub: `last ${data?.summary?.lookback_days ?? 7} days`,
+          },
+          {
+            label: 'WIN · DARK HORSE',
+            big: `${proven} · ${darkHorse}`,
+            sub: proven > 0 ? 'scale candidates ready' : 'no winners yet',
+            tone: proven > 0 ? 'ok' : 'muted',
+          },
+          {
+            label: 'KILL CANDIDATES',
+            big: `${stalled + under}`,
+            sub: stalled + under > 0 ? `$${totalSpend.toFixed(0)}/d total · CTR ${ctrPct}` : `CTR ${ctrPct}`,
+            tone: stalled + under > 0 ? 'err' : 'muted',
+          },
+        ]}
+      />
       <div class="flex-1 overflow-y-auto px-6 py-4">
         <VerdictBar
           text={data?.verdict_bar?.text || ''}
@@ -146,18 +175,18 @@ export function MetaAdsDashboard() {
         )}
 
         {sortedAds.length > 0 && (
-          <div class="overflow-x-auto">
+          <div class="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-card)]">
             <table class="w-full text-[13px]">
-              <thead>
-                <tr class="border-b border-[var(--color-border)] text-[11px] uppercase tracking-wider text-[var(--color-text-faint)]">
-                  <th class="text-left py-2 px-2">Pattern</th>
-                  <th class="text-left py-2 px-2">Ad</th>
-                  <th class="text-right py-2 px-2">Spend</th>
-                  <th class="text-right py-2 px-2">$/day</th>
-                  <th class="text-right py-2 px-2">CTR</th>
-                  <th class="text-right py-2 px-2">vs median</th>
-                  <th class="text-left py-2 px-2">Verdict</th>
-                  <th class="text-left py-2 px-2"></th>
+              <thead style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: 2, color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                <tr class="border-b border-[var(--color-border)]">
+                  <th class="text-left py-2.5 px-3">PATTERN</th>
+                  <th class="text-left py-2.5 px-3">AD</th>
+                  <th class="text-right py-2.5 px-3">SPEND</th>
+                  <th class="text-right py-2.5 px-3">$/DAY</th>
+                  <th class="text-right py-2.5 px-3">CTR</th>
+                  <th class="text-right py-2.5 px-3">×MEDIAN</th>
+                  <th class="text-left py-2.5 px-3">VERDICT</th>
+                  <th class="text-left py-2.5 px-3"></th>
                 </tr>
               </thead>
               <tbody>

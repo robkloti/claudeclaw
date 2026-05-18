@@ -9,7 +9,7 @@
  * out to gyst-ops/lib/decide.py.
  */
 
-import { PageHeader } from '@/components/PageHeader';
+import { AtelierHero } from '@/components/AtelierHero';
 import { PageState } from '@/components/PageState';
 import { VerdictBar } from '@/components/VerdictBar';
 import { WhyExpand } from '@/components/WhyExpand';
@@ -112,9 +112,34 @@ export function Opportunities() {
       .map(([type, items]) => ({ type, items: items.sort((a, b) => b.score - a.score) }));
   })();
 
+  const ks = data?.knowledge_stats;
+  const oppCount = data?.opportunities?.length ?? 0;
+
   return (
     <div class="flex flex-col h-full">
-      <PageHeader title="Opportunities" />
+      <AtelierHero
+        title="Wiki Opportunities"
+        breadcrumb={['~/wiki', 'opportunities', 'live']}
+        stats={[
+          {
+            label: 'OPPORTUNITIES',
+            big: String(oppCount),
+            sub: oppCount > 0 ? 'top action ready' : 'building knowledge',
+            tone: oppCount > 0 ? 'accent' : 'muted',
+          },
+          {
+            label: 'TACTICS',
+            big: String(ks?.tactics ?? 0),
+            sub: ks ? `${(ks.avg_confidence_across_all * 100).toFixed(0)}% avg confidence` : '–',
+          },
+          {
+            label: 'COVERAGE',
+            big: ks ? `${ks.categories_with_tactics} / 12` : '0 / 12',
+            sub: ks && ks.categories_with_tactics < 12 ? 'gaps to fill' : 'full coverage',
+            tone: ks && ks.categories_with_tactics === 12 ? 'ok' : 'warn',
+          },
+        ]}
+      />
 
       <div class="flex-1 overflow-y-auto px-6 py-4">
         <VerdictBar

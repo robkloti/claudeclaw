@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { Pause, Play, Trash2, Clock, LayoutGrid, List, CheckSquare, Pencil } from 'lucide-preact';
 import { PageHeader } from '@/components/PageHeader';
+import { AtelierHero } from '@/components/AtelierHero';
 import { Pill } from '@/components/Pill';
 import { PageState } from '@/components/PageState';
 import { PrivacyToggle } from '@/components/PrivacyToggle';
@@ -128,10 +129,26 @@ export function Scheduled() {
 
   const allSelected = tasks.length > 0 && selected.size === tasks.length;
 
+  const paused = tasks.filter((t) => (t as any).paused || (t as any).status === 'paused').length;
+  const active = tasks.length - paused;
+  const nextRun = tasks
+    .filter((t) => t.next_run && (!((t as any).paused)))
+    .sort((a, b) => a.next_run - b.next_run)[0];
+  const nextLabel = nextRun ? formatRelativeTime(nextRun) : '–';
+
   return (
     <div class="flex flex-col h-full">
+      <AtelierHero
+        title="Scheduled Tasks"
+        breadcrumb={['~/scheduled', 'cron', 'live']}
+        stats={[
+          { label: 'TASKS', big: String(tasks.length), sub: `${active} active · ${paused} paused`, tone: paused > 0 ? 'warn' : 'ok' },
+          { label: 'NEXT FIRE', big: nextRun ? '⏵' : '–', sub: nextLabel, tone: 'accent' },
+          { label: 'SELECTED', big: String(selected.size), sub: selected.size > 0 ? 'bulk action ready' : 'click rows to select' },
+        ]}
+      />
       <PageHeader
-        title="Scheduled"
+        title=""
         actions={
           <>
             <span class="text-[11.5px] text-[var(--color-text-muted)] tabular-nums">

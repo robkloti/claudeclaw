@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Send, Square, Sparkles, ArrowDown } from 'lucide-preact';
 import { PageHeader } from '@/components/PageHeader';
+import { AtelierHero } from '@/components/AtelierHero';
 import { PageState } from '@/components/PageState';
 import { StatusDot } from '@/components/Pill';
 import { useFetch } from '@/lib/useFetch';
@@ -162,8 +163,17 @@ export function Chat() {
 
   return (
     <div class="flex flex-col h-full">
+      <AtelierHero
+        title="Live Chat"
+        breadcrumb={['~/chat', activeAgent === 'all' ? 'all-agents' : activeAgent, streamConnected ? 'streaming' : 'reconnecting']}
+        stats={[
+          { label: 'TURNS TODAY', big: String(todayTurns), sub: activeAgent === 'all' ? 'all agents' : activeAgent, tone: 'accent' },
+          { label: 'COST TODAY', big: `$${todayCost.toFixed(2)}`, sub: activeAgent === 'all' ? 'sum across agents' : activeAgent },
+          { label: 'STREAM', big: streamConnected ? 'live' : 'down', sub: streamConnected ? 'SSE connected' : 'reconnecting…', tone: streamConnected ? 'ok' : 'err' },
+        ]}
+      />
       <PageHeader
-        title="Chat"
+        title=""
         actions={
           <span class="inline-flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)]">
             <StatusDot tone={streamConnected ? 'done' : 'cancelled'} />

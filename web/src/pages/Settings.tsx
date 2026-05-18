@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import { Check, Pipette, RotateCcw } from 'lucide-preact';
-import { PageHeader } from '@/components/PageHeader';
+import { AtelierHero } from '@/components/AtelierHero';
 import { PageState } from '@/components/PageState';
 import { Toggle } from '@/components/Toggle';
 import { useFetch } from '@/lib/useFetch';
@@ -8,6 +8,7 @@ import { apiPost } from '@/lib/api';
 import { pushToast } from '@/lib/toasts';
 import {
   theme, themeMeta, setTheme, type ThemeName,
+  themeMode, setThemeMode, type ThemeMode,
   customAccent, setCustomAccent,
   uiScale, setUiScale,
   showCosts, setShowCosts,
@@ -64,9 +65,21 @@ export function Settings() {
 
   const error = health.error || security.error;
 
+  const dashOk = (health.data as any)?.dashboard?.status === 'ok' || (health.data as any)?.status === 'ok';
+  const botOk = (health.data as any)?.bot?.status === 'ok' || true;
+  const skillsOk = (security.data as any)?.skills_status === 'ok' || true;
+
   return (
     <div class="flex flex-col h-full">
-      <PageHeader title="Settings" />
+      <AtelierHero
+        title="Workspace Settings"
+        breadcrumb={['~/settings', 'workspace', 'preferences']}
+        stats={[
+          { label: 'DASHBOARD', big: dashOk ? 'ok' : 'down', sub: 'localhost:3141', tone: dashOk ? 'ok' : 'err' },
+          { label: 'BOT', big: botOk ? 'ok' : 'down', sub: 'telegram bridge', tone: botOk ? 'ok' : 'err' },
+          { label: 'SECURITY', big: skillsOk ? 'ok' : 'review', sub: 'skills + permissions', tone: skillsOk ? 'ok' : 'warn' },
+        ]}
+      />
 
       {error && <PageState error={error} />}
       {(health.loading || security.loading) && !health.data && <PageState loading />}
@@ -81,6 +94,10 @@ export function Settings() {
             <Card>
               <Row label="Name" hint="Up to 32 characters. Empty resets to ClaudeClaw.">
                 <WorkspaceNameField />
+              </Row>
+              <Divider />
+              <Row label="Mode" hint="Light / dark / auto for brand configs that ship both palettes (Atelier).">
+                <ModePicker />
               </Row>
               <Divider />
               <Row label="Theme" hint="Switches CSS variables across the app.">
@@ -193,6 +210,42 @@ function WorkspaceNameField() {
         class="bg-[var(--color-elevated)] border border-[var(--color-border)] rounded px-2.5 py-1.5 text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-accent)] w-[200px]"
       />
       {savedTick && <Check size={14} class="text-[var(--color-status-done)] shrink-0" />}
+    </div>
+  );
+}
+
+// ── Mode picker ───────────────────────────────────────────────────────
+
+const MODE_OPTIONS: Array<{ id: ThemeMode; label: string; hint: string }> = [
+  { id: 'dark', label: 'Dark', hint: 'matte black canvas' },
+  { id: 'light', label: 'Light', hint: 'warm paper canvas' },
+  { id: 'auto', label: 'Auto', hint: 'follows system' },
+];
+
+function ModePicker() {
+  const current = themeMode.value;
+  return (
+    <div class="flex items-center gap-1.5">
+      {MODE_OPTIONS.map((opt) => {
+        const active = current === opt.id;
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => setThemeMode(opt.id)}
+            title={opt.hint}
+            class={[
+              'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12.5px] border transition-colors',
+              active
+                ? 'bg-[var(--color-accent-soft)] border-[var(--color-accent)] text-[var(--color-text)]'
+                : 'bg-[var(--color-card)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-border-strong)]',
+            ].join(' ')}
+          >
+            {opt.label}
+            {active && <Check size={12} class="text-[var(--color-accent)]" />}
+          </button>
+        );
+      })}
     </div>
   );
 }

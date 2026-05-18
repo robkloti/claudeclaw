@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { ChevronRight, Search, Pin, Sparkles, X } from 'lucide-preact';
 import { PageHeader, Tab } from '@/components/PageHeader';
+import { AtelierHero } from '@/components/AtelierHero';
 import { PageState } from '@/components/PageState';
 import { Drawer } from '@/components/Modal';
 import { PrivacyToggle } from '@/components/PrivacyToggle';
@@ -89,8 +90,17 @@ export function Memories() {
 
   return (
     <div class="flex flex-col h-full">
+      <AtelierHero
+        title="Persistent Memories"
+        breadcrumb={['~/memories', 'consolidation', 'live']}
+        stats={[
+          { label: 'TOTAL', big: String(total ?? 0), sub: dq ? `${filtered.length} match search` : 'all sectors' },
+          { label: 'SHOWING', big: String(filtered?.length ?? 0), sub: dq ? `query: "${dq}"` : 'no filter', tone: dq ? 'accent' : 'muted' },
+          { label: 'INSIGHTS', big: 'on', sub: 'consolidation running', tone: 'ok' },
+        ]}
+      />
       <PageHeader
-        title="Memories"
+        title=""
         actions={
           <>
             <span class="text-[11px] text-[var(--color-text-muted)] tabular-nums mr-2">

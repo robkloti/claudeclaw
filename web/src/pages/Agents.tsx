@@ -2,6 +2,7 @@ import { useState, useEffect } from 'preact/hooks';
 import { Plus, Power, RotateCcw, Trash2, Copy, Check, FileText, Lightbulb, RefreshCw } from 'lucide-preact';
 import { Link } from 'wouter-preact';
 import { PageHeader } from '@/components/PageHeader';
+import { AtelierHero } from '@/components/AtelierHero';
 import { Pill, StatusDot } from '@/components/Pill';
 import { PageState } from '@/components/PageState';
 import { Modal } from '@/components/Modal';
@@ -98,10 +99,23 @@ export function Agents() {
     } finally { setPendingAction(null); }
   }
 
+  const liveCount = agents.filter((a) => a.running).length;
+  const offlineCount = agents.length - liveCount;
+  const todayTurns = agents.reduce((s, a: any) => s + (a.todayTurns || 0), 0);
+
   return (
     <div class="flex flex-col h-full">
+      <AtelierHero
+        title="AI Agents"
+        breadcrumb={['~/agents', 'roster', 'live']}
+        stats={[
+          { label: 'LIVE · TOTAL', big: `${liveCount} / ${agents.length}`, sub: offlineCount > 0 ? `${offlineCount} offline` : 'all running', tone: offlineCount > 0 ? 'warn' : 'ok' },
+          { label: 'TURNS TODAY', big: String(todayTurns), sub: 'across all agents', tone: 'accent' },
+          { label: 'SUGGESTIONS', big: String(suggestions.length), sub: suggestions.length > 0 ? 'new agent ideas' : 'no new ideas', tone: suggestions.length > 0 ? 'accent' : 'muted' },
+        ]}
+      />
       <PageHeader
-        title="Agents"
+        title=""
         actions={
           <>
             <span class="text-[11px] text-[var(--color-text-muted)] tabular-nums mr-2">
@@ -263,7 +277,11 @@ function AgentCard({ agent, onChange, onOpen, suggestions, onOpenSuggestion }: {
 
   return (
     <div
-      class="bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg p-4 hover:border-[var(--color-border-strong)] transition-colors cursor-pointer"
+      class="bg-[var(--color-card)] border rounded-xl p-4 hover:border-[var(--color-border-strong)] transition-colors cursor-pointer"
+      style={{
+        borderColor: agent.running ? 'var(--color-accent)' : 'var(--color-border)',
+        boxShadow: agent.running ? 'inset 0 0 0 1px var(--color-accent-soft)' : 'none',
+      }}
       onClick={onOpen}
     >
       <div class="flex items-start gap-3 mb-3">
@@ -271,12 +289,18 @@ function AgentCard({ agent, onChange, onOpen, suggestions, onOpenSuggestion }: {
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-1.5 mb-0.5">
             <StatusDot tone={agent.running ? 'done' : 'cancelled'} />
-            <span class="text-[13px] font-medium text-[var(--color-text)] truncate">
-              {agent.name || agent.id}
+            <span
+              class="truncate text-[var(--color-text)]"
+              style={{ fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 400, lineHeight: 1.15, letterSpacing: '-0.2px' }}
+            >
+              <span style={{ fontStyle: 'italic' }}>{agent.name || agent.id}</span>
             </span>
             <AgentSuggestionBadge agentId={agent.id} suggestions={suggestions} onOpen={onOpenSuggestion} />
           </div>
-          <div class="text-[10px] text-[var(--color-text-faint)] uppercase tracking-wider">
+          <div
+            class="text-[var(--color-text-muted)] mt-0.5"
+            style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: 2, fontWeight: 600, textTransform: 'uppercase' }}
+          >
             {agent.id}
           </div>
         </div>
@@ -294,16 +318,29 @@ function AgentCard({ agent, onChange, onOpen, suggestions, onOpenSuggestion }: {
       </div>
 
       <div
-        class={(showCosts.value ? 'grid grid-cols-2' : 'grid grid-cols-1') + ' gap-3 border-t border-[var(--color-border)] pt-2.5 mb-3'}
+        class={(showCosts.value ? 'grid grid-cols-2' : 'grid grid-cols-1') + ' gap-3 pt-3 mb-3'}
+        style={{ borderTop: '1px dashed var(--color-border)' }}
       >
         <div>
-          <div class="text-[var(--color-text-faint)] text-[10px] uppercase tracking-wider mb-0.5">Today turns</div>
-          <div class="text-[var(--color-text)] tabular-nums text-[12px]">{agent.todayTurns ?? 0}</div>
+          <div
+            class="text-[var(--color-text-muted)] mb-1"
+            style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: 2, fontWeight: 600 }}
+          >TURNS TODAY</div>
+          <div
+            class="text-[var(--color-text)] tabular-nums"
+            style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 400, fontStyle: 'italic', lineHeight: 1 }}
+          >{agent.todayTurns ?? 0}</div>
         </div>
         {showCosts.value && (
           <div class="text-right">
-            <div class="text-[var(--color-text-faint)] text-[10px] uppercase tracking-wider mb-0.5">Today cost</div>
-            <div class="text-[var(--color-text)] tabular-nums text-[12px]">{formatCost(agent.todayCost ?? 0)}</div>
+            <div
+              class="text-[var(--color-text-muted)] mb-1"
+              style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: 2, fontWeight: 600 }}
+            >COST TODAY</div>
+            <div
+              class="text-[var(--color-text)] tabular-nums"
+              style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 400, fontStyle: 'italic', lineHeight: 1 }}
+            >{formatCost(agent.todayCost ?? 0)}</div>
           </div>
         )}
       </div>

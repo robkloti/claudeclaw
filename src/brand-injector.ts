@@ -27,6 +27,14 @@ export interface BrandConfig {
   page_title_prefix?: string;
   /** Hex color, e.g. "#FF6B6B" — overrides --color-accent */
   accent_color?: string;
+  /** Hex color — overrides --color-accent-hover (auto-derived from accent_color if not set) */
+  accent_hover_color?: string;
+  /** Hex color — overrides --color-elevated (raised surface above card) */
+  elevated_color?: string;
+  /** Hex color — overrides --color-border-strong */
+  border_strong_color?: string;
+  /** Hex color — overrides --color-text-faint */
+  text_faint_color?: string;
   /** Hex color — overrides --color-bg */
   bg_color?: string;
   /** Hex color — overrides --color-sidebar */
@@ -47,6 +55,17 @@ export interface BrandConfig {
   font_sans?: string;
   /** Custom font family for --font-mono */
   font_mono?: string;
+  /** Custom font family for --font-serif (Atelier-style editorial headlines) */
+  font_serif?: string;
+  /** Optional: a Google Fonts (or other) stylesheet URL to inject as <link rel="stylesheet"> so custom families resolve */
+  font_link_url?: string;
+  /** Custom font family for --font-headline (used by Anton-style display headlines) */
+  font_headline?: string;
+  /** Atelier-style nested schema: which mode to default to when neither localStorage nor the user has chosen */
+  default_mode?: 'dark' | 'light' | 'auto';
+  /** Atelier-style nested schema: per-mode color tokens. When present, frontend resolves the active mode and overrides at runtime via theme.ts. The brand-injector still writes the *default mode's* tokens server-side so the first paint matches. */
+  dark?: Partial<BrandConfig>;
+  light?: Partial<BrandConfig>;
   /** Optional custom domain (informational; serving via Cloudflare Tunnel is per-client manual for now) */
   custom_domain?: string;
 }
@@ -124,20 +143,45 @@ export function injectBranding(html: string, config: BrandConfig | null = loadBr
     );
   }
 
-  // 3. Inject <style> block with CSS variable overrides at end of <head>
+  // 3. Inject <style> block with CSS variable overrides + optional font link at end of <head>
+  const inserts: string[] = [];
+  if (config.font_link_url) {
+    inserts.push(
+      `    <link rel="preconnect" href="https://fonts.googleapis.com">`,
+      `    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`,
+      `    <link rel="stylesheet" href="${escapeAttr(config.font_link_url)}">`,
+    );
+  }
   const styleBlock = buildStyleBlock(config);
-  if (styleBlock) {
-    out = out.replace(/<\/head>/, `${styleBlock}\n  </head>`);
+  if (styleBlock) inserts.push(styleBlock);
+  if (inserts.length > 0) {
+    out = out.replace(/<\/head>/, `${inserts.join('\n')}\n  </head>`);
   }
 
   return out;
 }
 
 /**
+ * Resolve the effective config for the first paint. If the config has
+ * Atelier-style nested `dark`/`light` blocks, merge the chosen default
+ * mode's tokens onto the top-level config so the server-side render
+ * matches what the user will see before theme.ts hydrates and (optionally)
+ * swaps to the user's saved mode preference. Backward compatible: configs
+ * without nested blocks pass through unchanged.
+ */
+function resolveDefaultMode(config: BrandConfig): BrandConfig {
+  if (!config.dark && !config.light) return config;
+  const mode = config.default_mode === 'light' ? 'light' : 'dark';
+  const block = (mode === 'light' ? config.light : config.dark) || {};
+  return { ...config, ...block };
+}
+
+/**
  * Build a <style> tag with :root { --color-* overrides; } based on the
  * config. Returns empty string if no color/font overrides are set.
  */
-function buildStyleBlock(config: BrandConfig): string {
+function buildStyleBlock(rawConfig: BrandConfig): string {
+  const config = resolveDefaultMode(rawConfig);
   const overrides: string[] = [];
 
   if (config.accent_color) {
@@ -155,19 +199,60 @@ function buildStyleBlock(config: BrandConfig): string {
   if (config.text_color) overrides.push(`--color-text: ${config.text_color};`);
   if (config.text_muted_color) overrides.push(`--color-text-muted: ${config.text_muted_color};`);
   if (config.border_color) overrides.push(`--color-border: ${config.border_color};`);
+  if (config.accent_hover_color) overrides.push(`--color-accent-hover: ${config.accent_hover_color};`);
+  if (config.elevated_color) overrides.push(`--color-elevated: ${config.elevated_color};`);
+  if (config.text_faint_color) overrides.push(`--color-text-faint: ${config.text_faint_color};`);
+  if (config.border_strong_color) overrides.push(`--color-border-strong: ${config.border_strong_color};`);
   if (config.font_sans) overrides.push(`--font-sans: ${config.font_sans};`);
   if (config.font_mono) overrides.push(`--font-mono: ${config.font_mono};`);
+  if (config.font_serif) overrides.push(`--font-serif: ${config.font_serif};`);
+  if (config.font_headline) overrides.push(`--font-headline: ${config.font_headline};`);
 
-  if (overrides.length === 0) return '';
+  // Atelier-style nested schema → emit per-mode blocks so theme.ts can
+  // toggle data-mode on <html> at runtime without re-fetching the config.
+  const modeBlocks: string[] = [];
+  if (rawConfig.dark || rawConfig.light) {
+    for (const m of ['dark', 'light'] as const) {
+      const block = rawConfig[m];
+      if (!block) continue;
+      const modeOverrides: string[] = [];
+      if (block.accent_color) {
+        modeOverrides.push(`--color-accent: ${block.accent_color};`);
+        const hover = shadeHex(block.accent_color, -0.1);
+        if (hover) modeOverrides.push(`--color-accent-hover: ${hover};`);
+        const soft = withAlpha(block.accent_color, 0.15);
+        if (soft) modeOverrides.push(`--color-accent-soft: ${soft};`);
+      }
+      if (block.accent_hover_color) modeOverrides.push(`--color-accent-hover: ${block.accent_hover_color};`);
+      if (block.bg_color) modeOverrides.push(`--color-bg: ${block.bg_color};`);
+      if (block.sidebar_color) modeOverrides.push(`--color-sidebar: ${block.sidebar_color};`);
+      if (block.card_color) modeOverrides.push(`--color-card: ${block.card_color};`);
+      if (block.elevated_color) modeOverrides.push(`--color-elevated: ${block.elevated_color};`);
+      if (block.border_color) modeOverrides.push(`--color-border: ${block.border_color};`);
+      if (block.border_strong_color) modeOverrides.push(`--color-border-strong: ${block.border_strong_color};`);
+      if (block.text_color) modeOverrides.push(`--color-text: ${block.text_color};`);
+      if (block.text_muted_color) modeOverrides.push(`--color-text-muted: ${block.text_muted_color};`);
+      if (block.text_faint_color) modeOverrides.push(`--color-text-faint: ${block.text_faint_color};`);
+      if (modeOverrides.length > 0) {
+        modeBlocks.push(`      [data-mode="${m}"] {\n${modeOverrides.map((o) => '        ' + o).join('\n')}\n      }`);
+      }
+    }
+  }
 
-  return [
+  if (overrides.length === 0 && modeBlocks.length === 0) return '';
+
+  const lines: string[] = [
     '    <!-- brand-injector overrides (BRAND_CONFIG) -->',
     '    <style id="brand-overrides">',
-    '      :root, [data-theme] {',
-    ...overrides.map((o) => `        ${o}`),
-    '      }',
-    '    </style>',
-  ].join('\n');
+  ];
+  if (overrides.length > 0) {
+    lines.push('      :root, [data-theme] {');
+    overrides.forEach((o) => lines.push(`        ${o}`));
+    lines.push('      }');
+  }
+  modeBlocks.forEach((b) => lines.push(b));
+  lines.push('    </style>');
+  return lines.join('\n');
 }
 
 // ---------------------------------------------------------------------------
