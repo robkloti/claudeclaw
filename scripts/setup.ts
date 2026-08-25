@@ -1252,7 +1252,8 @@ async function setupMacOS() {
   <key>WorkingDirectory</key><string>${PROJECT_ROOT}</string>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
-  <key>ThrottleInterval</key><integer>5</integer>
+  <!-- Must exceed the Telegram long-poll timeout (30s) so a transient getUpdates 409 self-heals in one restart instead of flooding. -->
+  <key>ThrottleInterval</key><integer>40</integer>
   <key>StandardOutPath</key><string>/tmp/claudeclaw.log</string>
   <key>StandardErrorPath</key><string>/tmp/claudeclaw.err</string>
   <key>EnvironmentVariables</key>

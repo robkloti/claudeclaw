@@ -1343,9 +1343,31 @@ export function updateTaskAfterRun(
 }
 
 export function resetStuckTasks(agentId: string): number {
+  // Roll back next_run to now-1 so the task fires on the next scheduler tick
+  // instead of waiting until the next_run that markTaskRunning advanced it to
+  // before the crash. Without this, stuck tasks silently skip their window.
   const result = db.prepare(
-    `UPDATE scheduled_tasks SET status = 'active', started_at = NULL WHERE status = 'running' AND agent_id = ?`,
+    `UPDATE scheduled_tasks
+     SET status = 'active', started_at = NULL, next_run = (strftime('%s','now') - 1)
+     WHERE status = 'running' AND agent_id = ?`,
   ).run(agentId);
+  return result.changes;
+}
+
+/**
+ * Reset tasks that have been in 'running' state longer than maxAgeSec.
+ * Runs periodically so a crashed/dropped queue callback doesn't leave a task
+ * permanently stuck between process restarts.
+ */
+export function resetOverdueStuckTasks(agentId: string, maxAgeSec: number): number {
+  const result = db.prepare(
+    `UPDATE scheduled_tasks
+     SET status = 'active', started_at = NULL, next_run = (strftime('%s','now') - 1)
+     WHERE status = 'running'
+       AND agent_id = ?
+       AND started_at IS NOT NULL
+       AND (strftime('%s','now') - started_at) > ?`,
+  ).run(agentId, maxAgeSec);
   return result.changes;
 }
 
@@ -2257,7 +2279,7 @@ export function getMissionTask(id: string): MissionTask | null {
 
 export function claimNextMissionTask(agentId: string): MissionTask | null {
   const txn = db.transaction(() => {
-    const task = db
+    let task = db
       .prepare(
         `SELECT * FROM mission_tasks
          WHERE assigned_agent = ? AND status = 'queued'
@@ -2265,6 +2287,22 @@ export function claimNextMissionTask(agentId: string): MissionTask | null {
          LIMIT 1`,
       )
       .get(agentId) as MissionTask | undefined;
+
+    // Fallback: main is the safety net. If main has no work of its own, claim
+    // any mission that's been queued >5min and assigned to an agent that
+    // hasn't picked it up (i.e. no worker running for that agent).
+    if (!task && agentId === 'main') {
+      const orphanCutoff = Math.floor(Date.now() / 1000) - 300;
+      task = db
+        .prepare(
+          `SELECT * FROM mission_tasks
+           WHERE status = 'queued' AND created_at < ?
+           ORDER BY priority DESC, created_at ASC
+           LIMIT 1`,
+        )
+        .get(orphanCutoff) as MissionTask | undefined;
+    }
+
     if (!task) return null;
     db.prepare(
       `UPDATE mission_tasks SET status = 'running', started_at = ? WHERE id = ?`,

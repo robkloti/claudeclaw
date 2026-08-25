@@ -8,6 +8,7 @@ import {
   markTaskRunning,
   updateTaskAfterRun,
   resetStuckTasks,
+  resetOverdueStuckTasks,
   claimNextMissionTask,
   completeMissionTask,
   resetStuckMissionTasks,
@@ -21,7 +22,7 @@ import { formatForTelegram, splitMessage } from './bot.js';
 type Sender = (text: string) => Promise<void>;
 
 /** Max time (ms) a scheduled task can run before being killed. */
-const TASK_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const TASK_TIMEOUT_MS = 90 * 60 * 1000; // 90 minutes
 
 let sender: Sender;
 
@@ -55,7 +56,21 @@ export function initScheduler(send: Sender, agentId = 'main'): void {
   }
 
   setInterval(() => void runDueTasks(), 60_000);
-  logger.info({ agentId }, 'Scheduler started (checking every 60s)');
+
+  // Watchdog: periodically reset tasks that have been stuck in 'running' for
+  // longer than the task timeout + 10 min buffer. Catches cases where the
+  // process stays alive but the queue callback was dropped or threw before
+  // updateTaskAfterRun was called.
+  const WATCHDOG_INTERVAL_MS = 30 * 60 * 1000; // every 30 min
+  const STUCK_THRESHOLD_SEC = Math.ceil(TASK_TIMEOUT_MS / 1000) + 10 * 60; // 45 min
+  setInterval(() => {
+    const recovered = resetOverdueStuckTasks(agentId, STUCK_THRESHOLD_SEC);
+    if (recovered > 0) {
+      logger.warn({ recovered, agentId }, 'Watchdog reset overdue stuck tasks');
+    }
+  }, WATCHDOG_INTERVAL_MS);
+
+  logger.info({ agentId }, 'Scheduler started (checking every 60s, watchdog every 30m)');
 }
 
 async function runDueTasks(): Promise<void> {
@@ -96,8 +111,8 @@ async function runDueTasks(): Promise<void> {
         clearTimeout(timeout);
 
         if (result.aborted) {
-          updateTaskAfterRun(task.id, nextRun, 'Timed out after 10 minutes', 'timeout');
-          await sender(`⏱ Task timed out after 10m: "${task.prompt.slice(0, 60)}..." — killed.`);
+          updateTaskAfterRun(task.id, nextRun, 'Timed out after 90 minutes', 'timeout');
+          await sender(`⏱ Task timed out after 90m: "${task.prompt.slice(0, 60)}..." — killed.`);
           logger.warn({ taskId: task.id }, 'Task timed out');
           return;
         }
@@ -175,7 +190,7 @@ async function runDueMissionTasks(): Promise<void> {
           // Status is already 'cancelled' from the dashboard write — leave it.
           logger.info({ missionId: mission.id }, 'Mission task cancelled by user');
         } else {
-          completeMissionTask(mission.id, null, 'failed', 'Timed out after 10 minutes');
+          completeMissionTask(mission.id, null, 'failed', 'Timed out after 90 minutes');
           logger.warn({ missionId: mission.id }, 'Mission task timed out');
           try {
             await sender('Mission task timed out: "' + mission.title + '"');
