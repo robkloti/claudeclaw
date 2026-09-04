@@ -3,13 +3,25 @@ import { describe, it, expect, vi } from 'vitest';
 // Mock the config module before importing gemini
 vi.mock('./config.js', () => ({
   GOOGLE_API_KEY: 'test-key-123',
+  GEMINI_MODEL: 'gemini-test-model',
+}));
+
+vi.mock('./kill-switches.js', () => ({
+  requireEnabled: vi.fn(),
+}));
+
+const generateContentMock = vi.fn().mockResolvedValue({ text: '{"ok":true}' });
+vi.mock('@google/genai', () => ({
+  GoogleGenAI: class {
+    models = { generateContent: generateContentMock };
+  },
 }));
 
 vi.mock('./logger.js', () => ({
   logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 
-import { parseJsonResponse } from './gemini.js';
+import { generateContent, parseJsonResponse } from './gemini.js';
 
 describe('parseJsonResponse', () => {
   it('parses valid JSON', () => {
@@ -68,5 +80,22 @@ describe('parseJsonResponse', () => {
   it('handles case-insensitive code fence language tag', () => {
     const result = parseJsonResponse<{ v: number }>('```JSON\n{"v": 1}\n```');
     expect(result).toEqual({ v: 1 });
+  });
+});
+
+describe('generateContent', () => {
+  it('uses the configured GEMINI_MODEL by default', async () => {
+    const text = await generateContent('hello');
+    expect(text).toBe('{"ok":true}');
+    expect(generateContentMock).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'gemini-test-model', contents: 'hello' }),
+    );
+  });
+
+  it('accepts an explicit model override', async () => {
+    await generateContent('hello', 'gemini-other');
+    expect(generateContentMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ model: 'gemini-other' }),
+    );
   });
 });

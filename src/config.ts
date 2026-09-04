@@ -19,6 +19,7 @@ const envConfig = readEnvFile([
   'CLAUDECLAW_CONFIG',
   'DB_ENCRYPTION_KEY',
   'GOOGLE_API_KEY',
+  'GEMINI_MODEL',
   'AGENT_TIMEOUT_MS',
   'AGENT_MAX_TURNS',
   'SECURITY_PIN_HASH',
@@ -176,6 +177,12 @@ export const DB_ENCRYPTION_KEY =
 // Google API key for Gemini (memory extraction + consolidation)
 export const GOOGLE_API_KEY =
   process.env.GOOGLE_API_KEY || envConfig.GOOGLE_API_KEY || '';
+
+// Gemini model used by generateContent() (memory extraction, consolidation,
+// task auto-assign). gemini-2.0-flash was shut down on 2026-06-01; Google's
+// documented replacement is gemini-3.6-flash. Override with GEMINI_MODEL.
+export const GEMINI_MODEL =
+  process.env.GEMINI_MODEL || envConfig.GEMINI_MODEL || 'gemini-3.6-flash';
 
 // Streaming strategy for progressive Telegram updates.
 // 'global-throttle' (default): edits a placeholder message with streamed text,
