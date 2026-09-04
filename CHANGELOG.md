@@ -2,6 +2,25 @@
 
 All notable changes to ClaudeClaw will be documented here.
 
+## [unreleased] - 2026-09-04
+
+### Fixed — scheduler repair (caelum-ops #10)
+- Memory consolidation and task auto-assign called the retired
+  `gemini-2.0-flash` (shut down 2026-06-01). The model is now read from
+  `GEMINI_MODEL` (default `gemini-3.6-flash`, Google's documented
+  replacement).
+- Removed `launchd/com.claudeclaw.comms.plist`. The comms agent never
+  had a bot token and its installed plist still carried the
+  `__NODE_PATH__` placeholder, so launchd had been respawning it into
+  `EX_CONFIG` every 30s. `scripts/install-launchd.sh` now treats it as
+  stale and removes it on the next install.
+
+### Added — beats nudge
+- `node dist/beats-nudge-cli.js <build-log-dir>` lists build-log beats
+  not yet marked `**Filmed:** yes`, formatted for Telegram. Registered on
+  Rob's Mac as `main` scheduled task `e44686ff` (`0 9 * * 1`); see the
+  repair PR for the exact `schedule-cli create` command.
+
 ## [unreleased] - 2026-05-01
 
 ### Fixed — agent file-send awareness

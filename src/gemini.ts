@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 
-import { GOOGLE_API_KEY } from './config.js';
+import { GEMINI_MODEL, GOOGLE_API_KEY } from './config.js';
 import { logger } from './logger.js';
 import { requireEnabled } from './kill-switches.js';
 
@@ -17,11 +17,11 @@ function getClient(): GoogleGenAI {
 
 /**
  * Generate text content via Gemini.
- * Defaults to gemini-2.0-flash for speed and cost efficiency.
+ * Defaults to GEMINI_MODEL (env-configurable, see config.ts).
  */
 export async function generateContent(
   prompt: string,
-  model = 'gemini-2.0-flash',
+  model = GEMINI_MODEL,
 ): Promise<string> {
   // Kill-switch: refuse Gemini calls when LLM_SPAWN_ENABLED is off.
   // Memory ingestion, classifier paths, and any other generateContent

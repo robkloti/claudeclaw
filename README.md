@@ -1495,6 +1495,7 @@ Browse more: [github.com/anthropics/claude-code](https://github.com/anthropics/c
 | `ELEVENLABS_API_KEY` | No | Voice output. [elevenlabs.io](https://elevenlabs.io) |
 | `ELEVENLABS_VOICE_ID` | No | Your ElevenLabs voice ID string |
 | `GOOGLE_API_KEY` | No | Gemini. [aistudio.google.com](https://aistudio.google.com) |
+| `GEMINI_MODEL` | No | Gemini model for memory consolidation (default `gemini-3.6-flash`) |
 | `SLACK_USER_TOKEN` | No | Slack User OAuth Token (starts with `xoxp-`) |
 | `GOOGLE_CREDS_PATH` | No | Path to Google OAuth credentials.json (default: `~/.config/gmail/credentials.json`) |
 | `GMAIL_TOKEN_PATH` | No | Path to Gmail OAuth token (default: `~/.config/gmail/token.json`) |
