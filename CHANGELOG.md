@@ -17,8 +17,9 @@ All notable changes to ClaudeClaw will be documented here.
 
 ### Added — beats nudge
 - `node dist/beats-nudge-cli.js <build-log-dir>` lists build-log beats
-  not yet marked `**Filmed:** yes`, formatted for Telegram. Meant to run
-  weekly as a caelum scheduled task (see PR for the registration command).
+  not yet marked `**Filmed:** yes`, formatted for Telegram. Registered on
+  Rob's Mac as `main` scheduled task `e44686ff` (`0 9 * * 1`); see the
+  repair PR for the exact `schedule-cli create` command.
 
 ## [unreleased] - 2026-05-01
 
