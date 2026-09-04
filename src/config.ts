@@ -126,6 +126,16 @@ const rawConfigDir =
  */
 export const CLAUDECLAW_CONFIG = expandHome(rawConfigDir);
 
+/**
+ * Root of the agent-writable skill tree (Hermes-mirror of ~/.hermes/skills/).
+ * The skill_manage tool always writes here. Categories are subdirectories;
+ * each skill lives at <CLAUDECLAW_SKILLS_DIR>/<category>/<name>/SKILL.md.
+ * Archived skills land under <CLAUDECLAW_SKILLS_DIR>/.archive/.
+ */
+export const CLAUDECLAW_SKILLS_DIR = path.join(CLAUDECLAW_CONFIG, 'skills');
+export const CLAUDECLAW_SKILLS_ARCHIVE = path.join(CLAUDECLAW_SKILLS_DIR, '.archive');
+export const CLAUDECLAW_SKILLS_SNAPSHOTS = path.join(CLAUDECLAW_CONFIG, 'skill-snapshots');
+
 // Telegram limits
 export const MAX_MESSAGE_LENGTH = 4096;
 

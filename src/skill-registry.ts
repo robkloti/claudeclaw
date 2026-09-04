@@ -3,28 +3,61 @@ import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import yaml from 'js-yaml';
+
+import { CLAUDECLAW_SKILLS_DIR } from './config.js';
+import { upsertSkillLifecycle } from './db.js';
 import { logger } from './logger.js';
 
 // ── Types ───────────────────────────────────────────────────────────
 
+export type SkillSource = 'agent' | 'bundled' | 'global';
+
 export interface SkillMeta {
-  id: string;           // directory name
-  name: string;         // from frontmatter or first H1
-  description: string;  // first paragraph or frontmatter description
-  triggerWords: string[]; // from frontmatter 'triggers:' field or derived from name
-  fullPath: string;     // absolute path to SKILL.md
+  id: string;
+  name: string;
+  description: string;
+  triggerWords: string[];
+  fullPath: string;
+  source: SkillSource;
+  /** Hermes-style category (subfolder under the agent root). Empty for legacy skills. */
+  category: string;
+  /** Optional version string from frontmatter. */
+  version?: string;
 }
 
 // ── Internal state ──────────────────────────────────────────────────
 
 const skills: Map<string, SkillMeta> = new Map();
 
+/**
+ * Override paths captured by the most recent initSkillRegistry() call so
+ * reloadSkillRegistry() can re-scan with the same scope. Production code
+ * calls init once at boot with no overrides; tests pass overrides each run.
+ */
+interface RegistryOverrides {
+  projectRootOverride?: string;
+  agentSkillsDirOverride?: string;
+}
+let lastOverrides: RegistryOverrides = {};
+
 // ── Frontmatter parsing ─────────────────────────────────────────────
 
 interface Frontmatter {
   name?: string;
   description?: string;
-  triggers?: string[];
+  triggers?: string[] | string;
+  version?: string;
+  metadata?: {
+    claw?: {
+      tags?: string[] | string;
+      category?: string;
+    };
+    hermes?: {
+      tags?: string[] | string;
+      category?: string;
+    };
+  };
 }
 
 function parseFrontmatter(content: string): { frontmatter: Frontmatter; body: string } {
@@ -40,60 +73,46 @@ function parseFrontmatter(content: string): { frontmatter: Frontmatter; body: st
 
   const yamlBlock = trimmed.slice(3, endIdx).trim();
   const body = trimmed.slice(endIdx + 3).trim();
-  const fm: Frontmatter = {};
 
-  for (const line of yamlBlock.split('\n')) {
-    const colonIdx = line.indexOf(':');
-    if (colonIdx === -1) continue;
+  let parsed: unknown;
+  try {
+    parsed = yaml.load(yamlBlock);
+  } catch (err) {
+    logger.debug({ err: (err as Error).message }, 'YAML parse failed, treating as no frontmatter');
+    return { frontmatter: {}, body };
+  }
 
-    const key = line.slice(0, colonIdx).trim();
-    const rawValue = line.slice(colonIdx + 1).trim();
+  if (!parsed || typeof parsed !== 'object') {
+    return { frontmatter: {}, body };
+  }
 
-    if (key === 'name') {
-      fm.name = rawValue.replace(/^["']|["']$/g, '');
-    } else if (key === 'description') {
-      fm.description = rawValue.replace(/^["']|["']$/g, '');
-    } else if (key === 'triggers') {
-      // triggers can be a comma-separated list or a YAML array on one line
-      if (rawValue.startsWith('[') && rawValue.endsWith(']')) {
-        fm.triggers = rawValue
-          .slice(1, -1)
-          .split(',')
-          .map((s) => s.trim().replace(/^["']|["']$/g, '').toLowerCase())
-          .filter(Boolean);
-      } else if (rawValue) {
-        fm.triggers = rawValue
-          .split(',')
-          .map((s) => s.trim().replace(/^["']|["']$/g, '').toLowerCase())
-          .filter(Boolean);
-      }
+  return { frontmatter: parsed as Frontmatter, body };
+}
+
+/**
+ * Resolve trigger words from frontmatter. Order of preference:
+ *   1. `metadata.claw.tags` (new Hermes-mirror form)
+ *   2. `metadata.hermes.tags` (Hermes skill bundles, treated identically)
+ *   3. `triggers` (legacy flat form — string with commas OR array)
+ *   4. Words from the name (length > 2)
+ */
+function resolveTriggers(fm: Frontmatter, fallbackName: string): string[] {
+  const candidates: Array<string[] | string | undefined> = [
+    fm.metadata?.claw?.tags,
+    fm.metadata?.hermes?.tags,
+    fm.triggers,
+  ];
+
+  for (const c of candidates) {
+    if (Array.isArray(c)) {
+      return c.map((s) => String(s).toLowerCase()).filter(Boolean);
+    }
+    if (typeof c === 'string' && c.trim()) {
+      return c.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
     }
   }
 
-  // Handle multi-line triggers (YAML list with - items)
-  if (!fm.triggers) {
-    const triggersIdx = yamlBlock.indexOf('triggers:');
-    if (triggersIdx !== -1) {
-      const afterTriggers = yamlBlock.slice(triggersIdx + 'triggers:'.length);
-      const firstLineValue = afterTriggers.split('\n')[0].trim();
-      if (!firstLineValue) {
-        // Multi-line YAML list
-        const items: string[] = [];
-        const lines = afterTriggers.split('\n').slice(1);
-        for (const l of lines) {
-          const trimmedLine = l.trim();
-          if (trimmedLine.startsWith('- ')) {
-            items.push(trimmedLine.slice(2).trim().replace(/^["']|["']$/g, '').toLowerCase());
-          } else {
-            break;
-          }
-        }
-        if (items.length > 0) fm.triggers = items;
-      }
-    }
-  }
-
-  return { frontmatter: fm, body };
+  return fallbackName.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
 }
 
 function extractFirstH1(body: string): string | undefined {
@@ -108,7 +127,6 @@ function extractFirstParagraph(body: string): string {
 
   for (const line of lines) {
     const trimmed = line.trim();
-    // Skip headings and empty lines at the start
     if (!started) {
       if (!trimmed || trimmed.startsWith('#')) continue;
       started = true;
@@ -129,7 +147,7 @@ function findSkillFile(dir: string): string | null {
   const skillMd = path.join(dir, 'SKILL.md');
   if (fs.existsSync(skillMd)) return skillMd;
 
-  // Fall back to first .md file
+  // Fall back to first .md file (legacy support — some bundled skills used readme.md).
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
@@ -143,7 +161,58 @@ function findSkillFile(dir: string): string | null {
   return null;
 }
 
-function scanDirectory(dir: string): void {
+function registerSkill(
+  skillFile: string,
+  skillId: string,
+  category: string,
+  source: SkillSource,
+): void {
+  let content: string;
+  try {
+    content = fs.readFileSync(skillFile, 'utf-8');
+  } catch {
+    logger.warn({ skillFile }, 'Could not read skill file');
+    return;
+  }
+
+  const { frontmatter, body } = parseFrontmatter(content);
+  const fmName = typeof frontmatter.name === 'string' ? frontmatter.name : undefined;
+  const fmDesc = typeof frontmatter.description === 'string' ? frontmatter.description : undefined;
+  const name = fmName || extractFirstH1(body) || skillId;
+  const description = fmDesc || extractFirstParagraph(body);
+  const triggerWords = resolveTriggers(frontmatter, name);
+  const version =
+    typeof frontmatter.version === 'string' ? frontmatter.version : undefined;
+
+  const meta: SkillMeta = {
+    id: skillId,
+    name,
+    description,
+    triggerWords,
+    fullPath: skillFile,
+    source,
+    category,
+    ...(version ? { version } : {}),
+  };
+
+  if (skills.has(meta.id)) return;
+  skills.set(meta.id, meta);
+
+  // Mirror the registry into skill_lifecycle so the Curator can find this
+  // skill later. Idempotent — ON CONFLICT DO NOTHING in the SQL.
+  try {
+    upsertSkillLifecycle(meta.id, source);
+  } catch (err) {
+    // DB may not be initialized in some CLI contexts — log but don't fail.
+    logger.debug(
+      { err: (err as Error).message, skillId: meta.id },
+      'Could not upsert skill_lifecycle (db may not be initialized)',
+    );
+  }
+}
+
+/** Scan a flat <dir>/<name>/SKILL.md layout. Used for bundled + global skills. */
+function scanFlatDirectory(dir: string, source: SkillSource): void {
   if (!fs.existsSync(dir)) return;
 
   let entries: fs.Dirent[];
@@ -162,31 +231,61 @@ function scanDirectory(dir: string): void {
     const skillFile = findSkillFile(skillDir);
     if (!skillFile) continue;
 
-    let content: string;
-    try {
-      content = fs.readFileSync(skillFile, 'utf-8');
-    } catch {
-      logger.warn({ skillFile }, 'Could not read skill file');
+    registerSkill(skillFile, entry.name, '', source);
+  }
+}
+
+/**
+ * Scan a nested <root>/<category>/<name>/SKILL.md layout. Used for the
+ * agent-writable root so the agent can group skills by domain (devops,
+ * scraping, ad-creative, etc.) without exploding the top-level listing.
+ *
+ * Also supports flat <root>/<name>/SKILL.md inside the agent root for the
+ * "no category specified" path — the agent can omit the category param to
+ * skill_manage and we'll write to <root>/uncategorized/<name>/SKILL.md, but
+ * if someone hand-creates a skill directly at the root we still find it.
+ */
+function scanCategorizedDirectory(root: string, source: SkillSource): void {
+  if (!fs.existsSync(root)) return;
+
+  let topEntries: fs.Dirent[];
+  try {
+    topEntries = fs.readdirSync(root, { withFileTypes: true });
+  } catch {
+    logger.warn({ dir: root }, 'Could not read agent skill root');
+    return;
+  }
+
+  for (const entry of topEntries) {
+    if (!entry.isDirectory()) continue;
+    if (entry.name.startsWith('.')) continue; // .archive, .snapshots, etc.
+
+    const subdir = path.join(root, entry.name);
+
+    // Case A: this dir is itself a skill (flat layout — SKILL.md right inside).
+    const flatSkill = path.join(subdir, 'SKILL.md');
+    if (fs.existsSync(flatSkill)) {
+      registerSkill(flatSkill, entry.name, '', source);
       continue;
     }
 
-    const { frontmatter, body } = parseFrontmatter(content);
-    const name = frontmatter.name || extractFirstH1(body) || entry.name;
-    const description = frontmatter.description || extractFirstParagraph(body);
-    const triggerWords = frontmatter.triggers
-      || name.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+    // Case B: this is a category dir — walk one level deeper.
+    let innerEntries: fs.Dirent[];
+    try {
+      innerEntries = fs.readdirSync(subdir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
 
-    const meta: SkillMeta = {
-      id: entry.name,
-      name,
-      description,
-      triggerWords,
-      fullPath: skillFile,
-    };
+    for (const inner of innerEntries) {
+      if (!inner.isDirectory()) continue;
+      if (inner.name.startsWith('.')) continue;
 
-    // Don't overwrite if already registered (project skills take priority)
-    if (!skills.has(meta.id)) {
-      skills.set(meta.id, meta);
+      const skillDir = path.join(subdir, inner.name);
+      const skillFile = findSkillFile(skillDir);
+      if (!skillFile) continue;
+
+      registerSkill(skillFile, inner.name, entry.name, source);
     }
   }
 }
@@ -194,37 +293,59 @@ function scanDirectory(dir: string): void {
 // ── Public API ──────────────────────────────────────────────────────
 
 /**
- * Scan skills/ (relative to project root) and ~/.claude/skills/ to
- * populate the registry. Safe to call multiple times; clears previous state.
+ * Scan all three skill roots into the in-memory registry. Safe to call
+ * multiple times — clears prior state first.
  *
- * `projectRootOverride` redirects the project-skills scan to a different
- * directory — used by tests to point at a temp fixture root instead of the
- * real repo. In production the override is omitted and the path is derived
- * from this file's location via fileURLToPath() (decodes URL-encoded chars
- * so paths with spaces / parens / unicode resolve correctly).
+ * Priority order (first registration wins on ID collision):
+ *   1. Agent-writable root (CLAUDECLAW_SKILLS_DIR, default ~/.claudeclaw/skills/)
+ *   2. Project bundled (<projectRoot>/skills/)
+ *   3. Global (~/.claude/skills/)
+ *
+ * Agent-created skills win over bundled so a learned variant of a bundled
+ * skill takes precedence — matches Hermes's "bundled is the floor, agent
+ * builds up from there" model.
+ *
+ * Overrides:
+ *   - projectRootOverride: redirect the bundled scan (used by tests)
+ *   - agentSkillsDirOverride: redirect the agent-writable scan (used by tests)
  */
-export function initSkillRegistry(projectRootOverride?: string): void {
+export function initSkillRegistry(
+  projectRootOverride?: string,
+  agentSkillsDirOverride?: string,
+): void {
   skills.clear();
+  lastOverrides = { projectRootOverride, agentSkillsDirOverride };
 
-  // fileURLToPath decodes URL-encoded characters (e.g. %20 → space).
-  // The previous implementation used `new URL(import.meta.url).pathname`
-  // directly, which left %20 in the path and silently broke the project
-  // skills scan for anyone whose clone path contained a space.
-  let projectRoot = projectRootOverride
+  // fileURLToPath decodes URL-encoded characters (e.g. %20 → space). The
+  // previous implementation used `new URL(import.meta.url).pathname` which
+  // left %20 in the path and silently broke project skills for clones in
+  // dirs with spaces.
+  const projectRoot = projectRootOverride
     ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
   if (!fs.existsSync(path.join(projectRoot, 'CLAUDE.md'))) {
     logger.debug({ projectRoot }, 'CLAUDE.md not found at expected project root');
   }
 
+  const agentRoot = agentSkillsDirOverride ?? CLAUDECLAW_SKILLS_DIR;
   const projectSkillsDir = path.join(projectRoot, 'skills');
   const globalSkillsDir = path.join(os.homedir(), '.claude', 'skills');
 
-  // Scan project skills first (they take priority)
-  scanDirectory(projectSkillsDir);
-  scanDirectory(globalSkillsDir);
+  // Order matters: first registration wins. Agent overrides bundled overrides global.
+  scanCategorizedDirectory(agentRoot, 'agent');
+  scanFlatDirectory(projectSkillsDir, 'bundled');
+  scanFlatDirectory(globalSkillsDir, 'global');
 
-  logger.info({ count: skills.size }, 'Skill registry initialized');
+  logger.info({ count: skills.size, agentRoot }, 'Skill registry initialized');
+}
+
+/**
+ * Re-scan all three roots using the overrides from the last init call.
+ * Called by skill_manage after every write so the agent sees its own
+ * changes within the same session — no process restart.
+ */
+export function reloadSkillRegistry(): void {
+  initSkillRegistry(lastOverrides.projectRootOverride, lastOverrides.agentSkillsDirOverride);
 }
 
 /**
@@ -275,4 +396,48 @@ export function getSkillInstructions(id: string): string | null {
  */
 export function getAllSkills(): SkillMeta[] {
   return Array.from(skills.values());
+}
+
+/**
+ * Look up a skill by ID. Returns undefined if not registered.
+ */
+export function getSkill(id: string): SkillMeta | undefined {
+  return skills.get(id);
+}
+
+/**
+ * List supporting files in a skill's bundle (references/, templates/,
+ * scripts/, assets/). Returns paths relative to the skill's root dir.
+ * Empty array for skills without a bundle layout.
+ */
+export function getSkillBundleFiles(id: string): string[] {
+  const skill = skills.get(id);
+  if (!skill) return [];
+
+  const root = path.dirname(skill.fullPath);
+  const out: string[] = [];
+
+  for (const sub of ['references', 'templates', 'scripts', 'assets']) {
+    const subDir = path.join(root, sub);
+    if (!fs.existsSync(subDir)) continue;
+    try {
+      const walk = (dir: string, prefix: string): void => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          if (entry.name.startsWith('.')) continue;
+          const full = path.join(dir, entry.name);
+          const rel = path.join(prefix, entry.name);
+          if (entry.isDirectory()) {
+            walk(full, rel);
+          } else if (entry.isFile()) {
+            out.push(rel);
+          }
+        }
+      };
+      walk(subDir, sub);
+    } catch {
+      // Skip unreadable directories.
+    }
+  }
+
+  return out;
 }

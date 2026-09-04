@@ -449,6 +449,52 @@ function createSchema(database: Database.Database): void {
       tour_seen_at    INTEGER NOT NULL DEFAULT (strftime('%s','now')),
       UNIQUE(account_id, module_name)
     );
+
+    -- Self-evolving skills (Hermes-mirror).
+    -- skill_lifecycle: per-skill state machine (active → stale → archived).
+    --   created_by tells curator which skills to evaluate ('agent' only).
+    --   pinned skips all auto-transitions.
+    CREATE TABLE IF NOT EXISTS skill_lifecycle (
+      skill_id          TEXT PRIMARY KEY,
+      state             TEXT NOT NULL DEFAULT 'active',
+      pinned            INTEGER NOT NULL DEFAULT 0,
+      created_by        TEXT NOT NULL DEFAULT 'agent',
+      last_used_at      INTEGER,
+      state_changed_at  INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+      state_reason      TEXT NOT NULL DEFAULT ''
+    );
+    CREATE INDEX IF NOT EXISTS idx_skill_lifecycle_state
+      ON skill_lifecycle(state, last_used_at);
+
+    -- Tar.gz snapshots of ~/.claudeclaw/skills/ taken before each curator
+    -- run. Last N kept (configurable via curator.backup.keep). Powers
+    -- the one-command rollback guarantee.
+    CREATE TABLE IF NOT EXISTS skill_snapshots (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      snapshot_path TEXT NOT NULL,
+      reason        TEXT NOT NULL,
+      byte_size     INTEGER NOT NULL,
+      created_at    INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_skill_snapshots_time
+      ON skill_snapshots(created_at DESC);
+
+    -- LLM-proposed skill changes from the Curator phase 2. Mirrors the
+    -- agent_suggestions review pattern: surface in dashboard, user
+    -- accepts or dismisses, never auto-applied.
+    CREATE TABLE IF NOT EXISTS skill_suggestions (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      kind          TEXT NOT NULL,
+      target_ids    TEXT NOT NULL,
+      proposed_diff TEXT NOT NULL,
+      reasoning     TEXT NOT NULL,
+      created_at    INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+      dismissed_at  INTEGER,
+      acted_at      INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_skill_suggestions_active
+      ON skill_suggestions(created_at DESC)
+      WHERE dismissed_at IS NULL AND acted_at IS NULL;
   `);
 }
 
@@ -2602,6 +2648,149 @@ export function getSkillUsageStats(): Array<{
   `).all() as Array<{
     skill_id: string; count: number; last_used: number; total_tokens: number;
   }>;
+}
+
+// ── Self-evolving skills lifecycle ───────────────────────────────────
+
+export type SkillLifecycleSource = 'agent' | 'user' | 'bundled' | 'global';
+
+export interface SkillLifecycleRow {
+  skill_id: string;
+  state: 'active' | 'stale' | 'archived';
+  pinned: number;
+  created_by: SkillLifecycleSource;
+  last_used_at: number | null;
+  state_changed_at: number;
+  state_reason: string;
+}
+
+export function upsertSkillLifecycle(
+  skillId: string,
+  createdBy: SkillLifecycleSource,
+): void {
+  const now = Math.floor(Date.now() / 1000);
+  db.prepare(`
+    INSERT INTO skill_lifecycle (skill_id, state, created_by, state_changed_at)
+    VALUES (?, 'active', ?, ?)
+    ON CONFLICT(skill_id) DO NOTHING
+  `).run(skillId, createdBy, now);
+}
+
+export function setSkillState(
+  skillId: string,
+  state: 'active' | 'stale' | 'archived',
+  reason: string,
+): void {
+  const now = Math.floor(Date.now() / 1000);
+  db.prepare(`
+    UPDATE skill_lifecycle
+    SET state = ?, state_changed_at = ?, state_reason = ?
+    WHERE skill_id = ?
+  `).run(state, now, reason, skillId);
+}
+
+export function setSkillPinned(skillId: string, pinned: boolean): void {
+  db.prepare('UPDATE skill_lifecycle SET pinned = ? WHERE skill_id = ?')
+    .run(pinned ? 1 : 0, skillId);
+}
+
+export function touchSkillLastUsed(skillId: string): void {
+  const now = Math.floor(Date.now() / 1000);
+  db.prepare('UPDATE skill_lifecycle SET last_used_at = ? WHERE skill_id = ?')
+    .run(now, skillId);
+}
+
+export function getSkillLifecycle(skillId: string): SkillLifecycleRow | undefined {
+  return db.prepare('SELECT * FROM skill_lifecycle WHERE skill_id = ?')
+    .get(skillId) as SkillLifecycleRow | undefined;
+}
+
+export function getAllSkillLifecycle(): SkillLifecycleRow[] {
+  return db.prepare('SELECT * FROM skill_lifecycle ORDER BY skill_id')
+    .all() as SkillLifecycleRow[];
+}
+
+export function getAgentCreatedSkills(): SkillLifecycleRow[] {
+  return db.prepare(
+    "SELECT * FROM skill_lifecycle WHERE created_by = 'agent' ORDER BY last_used_at DESC NULLS LAST",
+  ).all() as SkillLifecycleRow[];
+}
+
+// ── Skill snapshots (curator backups) ────────────────────────────────
+
+export function recordSkillSnapshot(
+  snapshotPath: string,
+  reason: string,
+  byteSize: number,
+): number {
+  const info = db.prepare(`
+    INSERT INTO skill_snapshots (snapshot_path, reason, byte_size)
+    VALUES (?, ?, ?)
+  `).run(snapshotPath, reason, byteSize);
+  return Number(info.lastInsertRowid);
+}
+
+export interface SkillSnapshotRow {
+  id: number;
+  snapshot_path: string;
+  reason: string;
+  byte_size: number;
+  created_at: number;
+}
+
+export function listSkillSnapshots(): SkillSnapshotRow[] {
+  return db.prepare('SELECT * FROM skill_snapshots ORDER BY created_at DESC')
+    .all() as SkillSnapshotRow[];
+}
+
+export function deleteSkillSnapshot(id: number): void {
+  db.prepare('DELETE FROM skill_snapshots WHERE id = ?').run(id);
+}
+
+// ── Curator skill suggestions ────────────────────────────────────────
+
+export function recordSkillSuggestion(
+  kind: 'consolidate' | 'archive' | 'patch',
+  targetIds: string[],
+  proposedDiff: string,
+  reasoning: string,
+): number {
+  const info = db.prepare(`
+    INSERT INTO skill_suggestions (kind, target_ids, proposed_diff, reasoning)
+    VALUES (?, ?, ?, ?)
+  `).run(kind, JSON.stringify(targetIds), proposedDiff, reasoning);
+  return Number(info.lastInsertRowid);
+}
+
+export interface SkillSuggestionRow {
+  id: number;
+  kind: 'consolidate' | 'archive' | 'patch';
+  target_ids: string;
+  proposed_diff: string;
+  reasoning: string;
+  created_at: number;
+  dismissed_at: number | null;
+  acted_at: number | null;
+}
+
+export function listActiveSkillSuggestions(): SkillSuggestionRow[] {
+  return db.prepare(`
+    SELECT * FROM skill_suggestions
+    WHERE dismissed_at IS NULL AND acted_at IS NULL
+    ORDER BY created_at DESC
+  `).all() as SkillSuggestionRow[];
+}
+
+export function dismissSkillSuggestion(id: number): void {
+  const now = Math.floor(Date.now() / 1000);
+  db.prepare('UPDATE skill_suggestions SET dismissed_at = ? WHERE id = ?')
+    .run(now, id);
+}
+
+export function markSkillSuggestionActed(id: number): void {
+  const now = Math.floor(Date.now() / 1000);
+  db.prepare('UPDATE skill_suggestions SET acted_at = ? WHERE id = ?')
+    .run(now, id);
 }
 
 // ── Phase 6: Session summaries ────────────────────────────────────────

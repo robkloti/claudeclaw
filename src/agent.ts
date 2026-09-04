@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { query } from '@anthropic-ai/claude-agent-sdk';
+import { query, type McpServerConfig } from '@anthropic-ai/claude-agent-sdk';
 
 import { AGENT_MAX_TURNS, PROJECT_ROOT, agentCwd } from './config.js';
 import { readEnvFile } from './env.js';
@@ -9,6 +9,7 @@ import { classifyError, AgentError } from './errors.js';
 import { logger } from './logger.js';
 import { getScrubbedSdkEnv } from './security.js';
 import { requireEnabled } from './kill-switches.js';
+import { buildSkillManageMcpServer } from './skill-manage.js';
 
 // ── MCP server loading ──────────────────────────────────────────────
 // The Agent SDK's settingSources loads CLAUDE.md and permissions from
@@ -104,6 +105,51 @@ export interface AgentProgressEvent {
   description: string;
 }
 
+/**
+ * Self-evolving skills guidance, appended to the system prompt. Tells the
+ * agent WHEN to call mcp__claudeclaw-skills__skill_manage. Mirrors the
+ * Hermes trigger heuristics so the agent compounds knowledge across sessions.
+ */
+const SKILL_SAVE_GUIDANCE = [
+  '## Self-evolving skills',
+  '',
+  'You have a `mcp__claudeclaw-skills__skill_manage` tool that writes durable',
+  'SKILL.md files to ~/.claudeclaw/skills/. Skills you save are loaded',
+  'automatically in future sessions — so a hard problem solved once becomes',
+  'a procedure you can reuse instantly next time.',
+  '',
+  'Call `skill_manage` with action="create" when you finish a non-trivial task:',
+  '  - Completed a complex task (5+ tool calls) successfully.',
+  '  - Hit errors or dead ends and found the working path.',
+  '  - The user corrected your approach.',
+  '  - Discovered a non-trivial workflow worth keeping.',
+  '',
+  'Use `skills_list` first to check for related skills. If one exists, prefer',
+  'action="patch" or action="edit" over creating a new skill.',
+  '',
+  'Do NOT save:',
+  '  - One-shot answers or trivial fact lookups.',
+  '  - Single-tool work (one Read, one Bash, etc.).',
+  '  - Secrets, API keys, personal data, credentials.',
+  '',
+  'SKILL.md format (Hermes-compatible):',
+  '```',
+  '---',
+  'name: <skill-id>',
+  'description: One-line description shown in skills_list().',
+  'metadata:',
+  '  claw:',
+  '    tags: [keyword1, keyword2]',
+  '    category: <category>',
+  '---',
+  '# Skill Title',
+  '## When to Use',
+  '## Procedure',
+  '## Pitfalls',
+  '## Verification',
+  '```',
+].join('\n');
+
 /** Map SDK tool names to human-readable labels. */
 const TOOL_LABELS: Record<string, string> = {
   Read: 'Reading file',
@@ -117,6 +163,9 @@ const TOOL_LABELS: Record<string, string> = {
   Agent: 'Sub-agent',
   NotebookEdit: 'Editing notebook',
   AskUserQuestion: 'User question',
+  'mcp__claudeclaw-skills__skill_manage': 'Saving skill',
+  'mcp__claudeclaw-skills__skills_list': 'Listing skills',
+  'mcp__claudeclaw-skills__skill_view': 'Reading skill',
 };
 
 function toolLabel(toolName: string): string {
@@ -215,15 +264,21 @@ export async function runAgent(
 
   try {
     // Load MCP servers from project + user settings files, filtered by agent allowlist
-    const mcpServers = loadMcpServers(mcpAllowlist);
+    const externalMcpServers = loadMcpServers(mcpAllowlist);
+
+    // Always-on in-process MCP servers — the agent gets self-evolving skills
+    // via skill_manage without requiring any user-settings wiring.
+    const mcpServers: Record<string, McpServerConfig> = {
+      ...externalMcpServers,
+      'claudeclaw-skills': buildSkillManageMcpServer(),
+    };
     const mcpServerNames = Object.keys(mcpServers);
     logger.info(
       { sessionId: sessionId ?? 'new', messageLen: message.length, mcpServers: mcpServerNames },
       'Starting agent query',
     );
 
-    // SDK Options.mcpServers expects Record<string, McpServerConfig>
-    const mcpServerSpecs = mcpServerNames.length > 0 ? mcpServers : undefined;
+    const mcpServerSpecs = mcpServers;
 
     for await (const event of query({
       prompt: singleTurn(message),
@@ -242,6 +297,12 @@ export async function runAgent(
         permissionMode: 'bypassPermissions',
         allowDangerouslySkipPermissions: true,
 
+        // Self-evolving skills guidance — appended to the claude_code preset
+        // system prompt so the agent knows when to call skill_manage. The
+        // preset retains all the project CLAUDE.md + settingSources behavior;
+        // append adds the WHEN-to-save rules on top.
+        systemPrompt: { type: 'preset', preset: 'claude_code', append: SKILL_SAVE_GUIDANCE },
+
         // Cap agentic turns to prevent runaway tool-use loops (e.g. retrying
         // stale cookies 40+ times). Configurable via AGENT_MAX_TURNS in .env.
         ...(AGENT_MAX_TURNS > 0 ? { maxTurns: AGENT_MAX_TURNS } : {}),
@@ -249,8 +310,9 @@ export async function runAgent(
         // Pass secrets to the subprocess without polluting our own process.env
         env: sdkEnv,
 
-        // MCP servers loaded from .claude/settings.json and ~/.claude/settings.json
-        ...(mcpServerSpecs ? { mcpServers: mcpServerSpecs } : {}),
+        // MCP servers: external (from .claude/settings.json) + always-on
+        // in-process servers (skill_manage for self-evolving skills).
+        mcpServers: mcpServerSpecs,
 
         // Stream partial text so Telegram can show progressive updates
         includePartialMessages: !!onStreamText,

@@ -5,10 +5,12 @@ import path from 'path';
 
 import {
   initSkillRegistry,
+  reloadSkillRegistry,
   getSkillIndex,
   matchSkills,
   getSkillInstructions,
   getAllSkills,
+  getSkill,
 } from './skill-registry.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -271,6 +273,106 @@ Full instructions here.`;
 });
 
 // ── Edge cases ──────────────────────────────────────────────────────
+
+describe('agent-writable root (nested categories)', () => {
+  let tempAgent: string;
+
+  beforeEach(() => {
+    tempAgent = createTempSkillDir();
+  });
+
+  afterEach(() => {
+    fs.rmSync(tempAgent, { recursive: true, force: true });
+  });
+
+  it('discovers skills nested under category subfolders', () => {
+    const skillDir = path.join(tempAgent, 'devops', 'deploy-k8s');
+    fs.mkdirSync(skillDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(skillDir, 'SKILL.md'),
+      `---
+name: deploy-k8s
+description: Deploy a service to Kubernetes
+metadata:
+  claw:
+    tags: [kubernetes, deploy]
+    category: devops
+---
+# Deploy K8s
+
+Procedure goes here.`,
+    );
+
+    initSkillRegistry(tempRoot, tempAgent);
+    const s = getSkill('deploy-k8s');
+    expect(s).toBeDefined();
+    expect(s!.source).toBe('agent');
+    expect(s!.category).toBe('devops');
+    expect(s!.triggerWords).toEqual(['kubernetes', 'deploy']);
+  });
+
+  it('agent skill overrides bundled skill with same id', () => {
+    writeSkill(
+      path.join(tempRoot, 'skills'),
+      'gmail',
+      `---
+name: Gmail Bundled
+description: bundled gmail
+triggers: email
+---`,
+    );
+    const agentDir = path.join(tempAgent, 'comms', 'gmail');
+    fs.mkdirSync(agentDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(agentDir, 'SKILL.md'),
+      `---
+name: Gmail Agent
+description: agent-evolved gmail
+metadata:
+  claw:
+    tags: [email]
+---`,
+    );
+
+    initSkillRegistry(tempRoot, tempAgent);
+    const s = getSkill('gmail');
+    expect(s).toBeDefined();
+    expect(s!.source).toBe('agent');
+    expect(s!.description).toBe('agent-evolved gmail');
+  });
+
+  it('also accepts flat <root>/<name>/SKILL.md inside the agent root', () => {
+    const flat = path.join(tempAgent, 'ad-hoc');
+    fs.mkdirSync(flat, { recursive: true });
+    fs.writeFileSync(
+      path.join(flat, 'SKILL.md'),
+      `---
+name: ad-hoc
+description: flat layout
+---`,
+    );
+    initSkillRegistry(tempRoot, tempAgent);
+    expect(getSkill('ad-hoc')).toBeDefined();
+  });
+
+  it('reloadSkillRegistry picks up newly-written agent skills', () => {
+    initSkillRegistry(tempRoot, tempAgent);
+    expect(getSkill('hot-reload-test')).toBeUndefined();
+
+    const dir = path.join(tempAgent, 'misc', 'hot-reload-test');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, 'SKILL.md'),
+      `---
+name: hot-reload-test
+description: should appear after reload
+---`,
+    );
+
+    reloadSkillRegistry();
+    expect(getSkill('hot-reload-test')).toBeDefined();
+  });
+});
 
 describe('edge cases', () => {
   it('skips hidden directories', () => {

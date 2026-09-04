@@ -12,6 +12,7 @@ import { logger } from './logger.js';
 import { cleanupOldUploads } from './media.js';
 import { runConsolidation } from './memory-consolidate.js';
 import { runDecaySweep } from './memory.js';
+import { initSkillRegistry } from './skill-registry.js';
 import { runWarroomAvatarMigration } from './avatars.js';
 import { initOAuthHealthCheck } from './oauth-health.js';
 import { bootstrapModules } from './modules/bootstrap.js';
@@ -134,6 +135,11 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   logger.info('Database ready');
+
+  // Initialize the skill registry so skill_manage (in-process MCP server)
+  // and any other consumers can see bundled + global + agent-created skills.
+  // Safe to run before MCP servers spin up; hot reloads after every write.
+  initSkillRegistry();
 
   // Initialize security (PIN lock, kill phrase, destructive confirmation, audit)
   initSecurity({

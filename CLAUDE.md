@@ -109,6 +109,33 @@ node /Users/robkloti/claudeclaw/dist/schedule-cli.js delete <id>
 ```
 Common patterns: daily 9am `0 9 * * *`, weekday 8am `0 8 * * 1-5`, every 4h `0 */4 * * *`.
 
+## Self-evolving skills (the compounding loop)
+
+You have a `mcp__claudeclaw-skills__skill_manage` tool that writes durable `SKILL.md` files to `~/.claudeclaw/skills/`. Skills you save load automatically in future sessions. A hard problem solved once becomes a procedure you can reuse instantly next time.
+
+When to call `skill_manage` with action="create":
+- You completed a complex task (5+ tool calls) successfully.
+- You hit errors or dead ends and found the working path.
+- Rob corrected your approach.
+- You discovered a non-trivial workflow worth keeping.
+
+Don't save: one-shot answers, trivial fact lookups, single-tool work, or anything containing secrets/credentials. Use `skills_list` to check for related skills first — if one exists, prefer action="patch" over action="create".
+
+CLI for manual control (use Bash to run these):
+```
+node /Users/robkloti/claudeclaw/dist/skills-cli.js list
+node /Users/robkloti/claudeclaw/dist/skills-cli.js view <name>
+node /Users/robkloti/claudeclaw/dist/skills-cli.js pin <name>      # protect from curator
+node /Users/robkloti/claudeclaw/dist/skills-cli.js archive <name>  # soft delete
+node /Users/robkloti/claudeclaw/dist/skills-cli.js restore <name>
+
+node /Users/robkloti/claudeclaw/dist/curator-cli.js status
+node /Users/robkloti/claudeclaw/dist/curator-cli.js run --dry-run
+node /Users/robkloti/claudeclaw/dist/curator-cli.js rollback --list
+```
+
+Curator runs auto-clean (stale at 30 days unused, archive at 90 days). Pinned skills are never touched. Every curator run takes a snapshot first — one-command rollback to any of the last 5.
+
 ## Delegating to other agents (when they exist)
 
 If Rob spins up sub-agents (gyst, caelum, research, etc), delegate via:
