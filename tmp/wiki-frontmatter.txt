@@ -1,0 +1,684 @@
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//_master-index.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//_review-queue.md ===
+
+## Stale Confidence Flags (>30 days since updated_at)
+
+### Own Tactics — 2 stale
+
+| File | confidence | updated_at | Days old | Status |
+|---|---|---|---|---|
+| `tactics/email/subject-names-vertical-first-5.md` | 0.95 | 2026-07-06 | 69 | **STALE — review** |
+| `tactics/email/first-sentence-outcome-not-intro.md` | 0.80 | 2026-07-20 | 55 | **STALE — review** |
+| `tactics/distribution/video-personalization-cold-outreach.md` | 0.95 | 2026-08-17 | 27 | ok |
+| `tactics/outcome-first-body.md` | 0.80 | 2026-08-31 | 13 | ok |
+| `tactics/single-yes-no-cta.md` | 0.75 | 2026-08-31 | 13 | ok |
+| `tactics/positioning/diy-course-as-dfy-lead-source.md` | 0.65 | 2026-09-05 | 8 | ok |
+| `tactics/ai-business-os/self-hosted-oss-as-dfy-category-proof.md` | 0.65 | 2026-09-13 | 0 | ok (new) |
+
+### External Patterns — 16 stale
+
+All updated 2026-06-12 (93 days ago). All still at confidence 0.10. No spawn-shorts feedback yet to drive ramp. Stale flag is cosmetic until feedback-synth fires.
+
+| File | updated_at | Days stale |
+|---|---|---|
+| `external-patterns/format-shells/kallaway-6-step-content-system-reveal.md` | 2026-06-12 | 93 |
+| `external-patterns/format-shells/neuroscience-framework-with-live-example.md` | 2026-06-12 | 93 |
+| `external-patterns/format-shells/news-reaction-video-shell.md` | 2026-06-12 | 93 |
+| `external-patterns/format-shells/non-obvious-principles-of-N.md` | 2026-06-12 | 93 |
+| `external-patterns/format-shells/numbered-batch-workflow-reveal.md` | 2026-06-12 | 93 |
+| `external-patterns/format-shells/numbered-format-bank-with-proof.md` | 2026-06-12 | 93 |
+| `external-patterns/format-shells/outcome-promise-recipe-thread.md` | 2026-06-12 | 93 |
+| `external-patterns/format-shells/psychological-mechanism-three-level-ladder.md` | 2026-06-12 | 93 |
+| `external-patterns/format-shells/three-levels-of-ai-walkthrough.md` | 2026-06-12 | 93 |
+| `external-patterns/format-shells/three-stage-time-constrained-system.md` | 2026-06-12 | 93 |
+| `external-patterns/format-shells/three-trends-deep-dive-shell.md` | 2026-06-12 | 93 |
+| `external-patterns/format-shells/tofu-mofu-bofu-content-stack.md` | 2026-06-12 | 93 |
+| `external-patterns/format-shells/twelve-step-money-system-with-filter.md` | 2026-06-12 | 93 |
+| `external-patterns/format-shells/wrong-version-vs-right-version-audit.md` | 2026-06-12 | 93 |
+| `external-patterns/viral-hooks/three-part-boring-intro-system.md` | 2026-06-12 | 93 |
+| `external-patterns/viral-hooks/visual-proof-before-after-cost-compare.md` | 2026-06-12 | 93 |
+
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//agent-harnesses/_index.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//agent-harnesses/configuration-discipline.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//agent-harnesses/context-management.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//agent-harnesses/evaluation-trust-layer.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//agent-harnesses/five-layer-roadmap.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//agent-harnesses/five-levers.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//agent-harnesses/framework-comparison.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//agent-harnesses/long-running-agents.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//agent-harnesses/loop-2026.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//agent-harnesses/permission-surface.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//agent-harnesses/what-is-a-harness.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//claude-code-skills/_index.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//claude-code-skills/anatomy.md ===
+name: deploy
+description: Deploy the application to production. Use when deploying code, running the release checklist, or preparing a production release.
+disable-model-invocation: true
+allowed-tools: Bash(git *) Bash(npm *)
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//claude-code-skills/authoring.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//claude-code-skills/distribution.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//claude-code-skills/gotchas.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//claude-code-skills/invocation.md ===
+name: fix-issue
+arguments: [issue, branch]
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//claude-code-skills/notable-skills.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//claude-code-skills/overview.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//claude-code-skills/skills-vs-other-primitives.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/README.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/format-shells/kallaway-6-step-content-system-reveal.md ===
+type: tactic
+name: kallaway-6-step-content-system-reveal
+display_name: 6-step content system reveal (long-form)
+category: format-shells
+subcategory: external_pattern
+confidence: 0.1
+confirmation_count: 1
+source_type: youtube_transcript
+source_name: YouTube · @kallawaymarketing
+source_section: Copy This System, It'll Blow Up Your Social Media — 2026-05-07
+example: Hook = identity flex ('1M followers, billions of views') + system reveal frame. Body = 6 sequentially numbered steps (Topics, Formats, Substance, Hooks, Scripting, Editing) each ~5 min. Bonus step (10X batch). Summary.
+anti_example: Single-tip videos. Topics with <5 deep steps. Short-form (this shell needs 20+ min runtime to land).
+tags: ["external-pattern", "format-shell"]
+created_at: "2026-05-12T10:22:49.500660+00:00"
+updated_at: "2026-06-12"
+external: true
+marketing_value: yes
+economic_value: yes
+ingestion_mode: batch-2026-05-12
+source_url: "https://www.youtube.com/watch?v=B9l9TRhu5Vw"
+source_views: 14192
+source_video_id: B9l9TRhu5Vw
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/format-shells/neuroscience-framework-with-live-example.md ===
+type: tactic
+name: neuroscience-framework-with-live-example
+display_name: Mechanism → N-step loop → live example → application
+category: format-shells
+subcategory: external_pattern
+confidence: 0.1
+confirmation_count: 1
+source_type: youtube_transcript
+source_name: YouTube · @kallawaymarketing
+source_section: The Neuroscience of Addictive Storytelling — 2026-04-22
+example: "Hook = 'all you have to do is understand one core concept: [X]'. Body = how [X] works biologically → N-step loop → live example walked through beat-by-beat → tactical application → summary."
+anti_example: Topics with no underlying mechanism to anchor on. Examples without a clean live walkthrough.
+tags: ["external-pattern", "format-shell"]
+created_at: "2026-05-12T10:22:49.502304+00:00"
+updated_at: "2026-06-12"
+external: true
+marketing_value: yes
+economic_value: yes
+ingestion_mode: batch-2026-05-12
+source_url: "https://www.youtube.com/watch?v=KyC8r-zitVE"
+source_views: 47754
+source_video_id: KyC8r-zitVE
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/format-shells/news-reaction-video-shell.md ===
+type: tactic
+name: news-reaction-video-shell
+display_name: News-reaction video for businesses (algorithm-change pretext)
+category: format-shells
+subcategory: external_pattern
+confidence: 0.1
+confirmation_count: 1
+source_type: youtube_transcript
+source_name: YouTube · @ed-lawrence
+source_section: Make This Video, Its Blowing Up Businesses — 2026-04-02
+example: Hook = algorithm/platform change pretext. Body = 5 styles → idea sources → 'golden rule' → speed framework → monetization close.
+anti_example: Stable niches with no recent news. When you don't actually riff on news (forced fits).
+tags: ["external-pattern", "format-shell"]
+created_at: "2026-05-12T10:22:49.503685+00:00"
+updated_at: "2026-06-12"
+external: true
+marketing_value: yes
+economic_value: yes
+ingestion_mode: batch-2026-05-12
+source_url: "https://www.youtube.com/watch?v=s5mkBXsBAF4"
+source_views: 11133
+source_video_id: s5mkBXsBAF4
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/format-shells/non-obvious-principles-of-N.md ===
+type: tactic
+name: non-obvious-principles-of-N
+display_name: N non-obvious principles (not influencers, regular people)
+category: format-shells
+subcategory: external_pattern
+confidence: 0.1
+confirmation_count: 1
+source_type: youtube_transcript
+source_name: YouTube · @kallawaymarketing
+source_section: How Regular People Are Making Millions From Social Media — 2026-04-01
+example: Hook = pattern-interrupt + audience-distinction ('not influencers, normal owners'). Body = N (usually 6) non-obvious principles, each ~2-3 min, that contradict common advice.
+anti_example: When the principles aren't actually non-obvious. When the audience-distinction is forced.
+tags: ["external-pattern", "format-shell"]
+created_at: "2026-05-12T10:22:49.502641+00:00"
+updated_at: "2026-06-12"
+external: true
+marketing_value: yes
+economic_value: yes
+ingestion_mode: batch-2026-05-12
+source_url: "https://www.youtube.com/watch?v=bqzd0h0gmU0"
+source_views: 38601
+source_video_id: bqzd0h0gmU0
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/format-shells/numbered-batch-workflow-reveal.md ===
+type: tactic
+name: numbered-batch-workflow-reveal
+display_name: Numbered batch workflow (month-of-content-in-60-min shell)
+category: format-shells
+subcategory: external_pattern
+confidence: 0.1
+confirmation_count: 1
+source_type: youtube_transcript
+source_name: YouTube · @PersonalBrandLaunch
+source_section: How to Create a Month Worth of Content in 60 Minutes — 2026-04-30
+example: Hook = identity flex + outcome promise. Body = numbered steps walked through in order (account type → posting schedule → niche → ...).
+anti_example: Topics that aren't time-compressible. Audiences without a time pain point.
+tags: ["external-pattern", "format-shell"]
+created_at: "2026-05-12T10:22:49.504964+00:00"
+updated_at: "2026-06-12"
+external: true
+marketing_value: yes
+economic_value: yes
+ingestion_mode: batch-2026-05-12
+source_url: "https://www.youtube.com/watch?v=TpTY6hFJbic"
+source_views: 4771
+source_video_id: TpTY6hFJbic
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/format-shells/numbered-format-bank-with-proof.md ===
+type: tactic
+name: numbered-format-bank-with-proof
+display_name: Numbered format bank with proof-point per item
+category: format-shells
+subcategory: external_pattern
+confidence: 0.1
+confirmation_count: 1
+source_type: youtube_transcript
+source_name: YouTube · @PersonalBrandLaunch
+source_section: 8 VIRAL Carousel Ideas, To Get More Followers and Engagement — 2026-03-26
+example: Hook = pattern-interrupt + outsized proof ('1.4M views, 6k followers off ONE carousel'). Body = N (5-10) numbered format ideas, each with name + description + proof point or example.
+anti_example: Topics with <5 ideas. Generic 'tips' lists with no proof-points.
+tags: ["external-pattern", "format-shell"]
+created_at: "2026-05-12T10:22:49.505908+00:00"
+updated_at: "2026-06-12"
+external: true
+marketing_value: yes
+economic_value: yes
+ingestion_mode: batch-2026-05-12
+source_url: "https://www.youtube.com/watch?v=eBoc3TmL3yg"
+source_views: 2725
+source_video_id: eBoc3TmL3yg
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/format-shells/outcome-promise-recipe-thread.md ===
+type: tactic
+name: outcome-promise-recipe-thread
+display_name: Outcome-promise + recipe-metaphor numbered thread
+category: format-shells
+subcategory: thread_shell
+confidence: 0.1
+confirmation_count: 1
+source_type: twitter_thread
+source_name: Greg Isenberg (@gregisenberg)
+source_section: x.com/gregisenberg/status/2052110589682749869 — design.md + AI Skills thread, May 6 2026
+example: Hook = 'how to use [X] to [outcome] in [timeframe]'. Step 1 = name the thing + one-line metaphor (e.g. design.md = recipe). Steps 2-8 each = claim + tactic + brand-name example (Linear/Stripe/Vercel). Middle slot = 'biggest mistake people make' reframe. Close = soft authority + watch-link CTA.
+anti_example: Pure list with no metaphor anchor (reads as listicle), or metaphor without numbered structure (reads as essay).
+tags: ["thread", "format-shell", "viral"]
+created_at: "2026-05-12T09:56:16.557174+00:00"
+updated_at: "2026-06-12"
+external: true
+marketing_value: true
+economic_value: true
+kept_as_reference: true
+ingestion_mode: reference-only-2026-05-12
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/format-shells/psychological-mechanism-three-level-ladder.md ===
+type: tactic
+name: psychological-mechanism-three-level-ladder
+display_name: Psychological mechanism + 3-level ladder + components
+category: format-shells
+subcategory: external_pattern
+confidence: 0.1
+confirmation_count: 1
+source_type: youtube_transcript
+source_name: YouTube · @kallawaymarketing
+source_section: How to Build an Audience That's Obsessed With You (The Power of Suggestion) — 2026-04-15
+example: Hook = name ONE mechanism that beats everything. Body = define the mechanism → 3-level ladder (Signal/Belief/Action) → 5 components → summary. The 3-level ladder is the spine — each level gets a deep treatment.
+anti_example: Topics with no real psychological mechanism. Skill-only content (this shell needs an idea or principle to anchor on).
+tags: ["external-pattern", "format-shell"]
+created_at: "2026-05-12T10:22:49.501970+00:00"
+updated_at: "2026-06-12"
+external: true
+marketing_value: yes
+economic_value: yes
+ingestion_mode: batch-2026-05-12
+source_url: "https://www.youtube.com/watch?v=cuVyTmbOZjk"
+source_views: 88681
+source_video_id: cuVyTmbOZjk
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/format-shells/three-levels-of-ai-walkthrough.md ===
+type: tactic
+name: three-levels-of-ai-walkthrough
+display_name: Three levels of AI + workflow walkthrough
+category: format-shells
+subcategory: external_pattern
+confidence: 0.1
+confirmation_count: 1
+source_type: youtube_transcript
+source_name: YouTube · @PersonalBrandLaunch
+source_section: "Your Not Behind (Yet): How to Use AI For Your Content in 16 Minutes — 2026-04-10"
+example: Hook = identity flex ('grew from this to this twice'). Body = 3 levels of AI (LLM → Agent → ?) → tool walkthrough → step-by-step workflow → future state.
+anti_example: Topics where the 3 levels are forced. Audiences that already know the levels.
+tags: ["external-pattern", "format-shell"]
+created_at: "2026-05-12T10:22:49.504649+00:00"
+updated_at: "2026-06-12"
+external: true
+marketing_value: yes
+economic_value: yes
+ingestion_mode: batch-2026-05-12
+source_url: "https://www.youtube.com/watch?v=9kfy0VO55kA"
+source_views: 17539
+source_video_id: 9kfy0VO55kA
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/format-shells/three-stage-time-constrained-system.md ===
+type: tactic
+name: three-stage-time-constrained-system
+display_name: 3-stage time-constrained growth system
+category: format-shells
+subcategory: external_pattern
+confidence: 0.1
+confirmation_count: 1
+source_type: youtube_transcript
+source_name: YouTube · @ed-lawrence
+source_section: How To Grow A $1M YouTube Channel (When You Have No Time) — 2026-05-07
+example: Hook = personal-history outcome ('$9M, 2 silver play buttons') + 'no time' reframe. Body = 3 named stages, each ~2 min.
+anti_example: Topics that need >3 stages. Audiences not under time pressure.
+tags: ["external-pattern", "format-shell"]
+created_at: "2026-05-12T10:22:49.504010+00:00"
+updated_at: "2026-06-12"
+external: true
+marketing_value: yes
+economic_value: yes
+ingestion_mode: batch-2026-05-12
+source_url: "https://www.youtube.com/watch?v=JYIupufcWTQ"
+source_views: 7226
+source_video_id: JYIupufcWTQ
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/format-shells/three-trends-deep-dive-shell.md ===
+type: tactic
+name: three-trends-deep-dive-shell
+display_name: Three-trends-of-the-year deep dive
+category: format-shells
+subcategory: external_pattern
+confidence: 0.1
+confirmation_count: 1
+source_type: youtube_transcript
+source_name: YouTube · @kallawaymarketing
+source_section: The NEW Way to WIN on Social Media in 2026 — 2026-04-29
+example: Hook = landscape-shift claim + 'rules change' reframe + 'smaller players win' angle. Body = 3 named trends, each ~7-10 min. Summary.
+anti_example: Stable industries. Topics with no genuine shift. Trend lists with <3 or >4 items (3 is the sweet spot).
+tags: ["external-pattern", "format-shell"]
+created_at: "2026-05-12T10:22:49.501631+00:00"
+updated_at: "2026-06-12"
+external: true
+marketing_value: yes
+economic_value: yes
+ingestion_mode: batch-2026-05-12
+source_url: "https://www.youtube.com/watch?v=ImzoNTrgvFg"
+source_views: 28826
+source_video_id: ImzoNTrgvFg
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/format-shells/tofu-mofu-bofu-content-stack.md ===
+type: tactic
+name: tofu-mofu-bofu-content-stack
+display_name: TOFU / MOFU / BOFU 3-funnel content stack
+category: format-shells
+subcategory: external_pattern
+confidence: 0.1
+confirmation_count: 1
+source_type: youtube_transcript
+source_name: YouTube · @PersonalBrandLaunch
+source_section: Your EXACT System to Blowing Up on Instagram in 2026 — 2026-02-26
+example: Hook = 3-category reveal using consumer/marketing-stack language. Body = 3 funnel tiers, each with examples + when-to-use.
+anti_example: Audiences not yet thinking in funnels. Niches where TOFU/MOFU/BOFU is forced.
+tags: ["external-pattern", "format-shell"]
+created_at: "2026-05-12T10:22:49.505278+00:00"
+updated_at: "2026-06-12"
+external: true
+marketing_value: yes
+economic_value: yes
+ingestion_mode: batch-2026-05-12
+source_url: "https://www.youtube.com/watch?v=yFldV9hR3Sc"
+source_views: 9259
+source_video_id: yFldV9hR3Sc
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/format-shells/twelve-step-money-system-with-filter.md ===
+type: tactic
+name: twelve-step-money-system-with-filter
+display_name: 12-step money system with audience-filter open
+category: format-shells
+subcategory: external_pattern
+confidence: 0.1
+confirmation_count: 1
+source_type: youtube_transcript
+source_name: YouTube · @ed-lawrence
+source_section: The $1M YouTube Strategy Nobody Is Talking About — 2026-04-30
+example: Hook = 3 contrasting case studies that defy expectation. Then explicit 'who this works for / who this doesn't' audience-filter. Then 12 numbered steps. Heavy + comprehensive.
+anti_example: Topics with no clear filter (works for everyone). Step counts <8 or >15.
+tags: ["external-pattern", "format-shell"]
+created_at: "2026-05-12T10:22:49.503368+00:00"
+updated_at: "2026-06-12"
+external: true
+marketing_value: yes
+economic_value: yes
+ingestion_mode: batch-2026-05-12
+source_url: "https://www.youtube.com/watch?v=LbO5uQG8gyw"
+source_views: 14672
+source_video_id: LbO5uQG8gyw
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/format-shells/wrong-version-vs-right-version-audit.md ===
+type: tactic
+name: wrong-version-vs-right-version-audit
+display_name: Wrong-version / right-version per-element audit
+category: format-shells
+subcategory: external_pattern
+confidence: 0.1
+confirmation_count: 1
+source_type: youtube_transcript
+source_name: YouTube · @PersonalBrandLaunch
+source_section: Optimize Your Profile Like the Top 1% — 2026-03-13
+example: Hook = time-pressure ('people look for 5 seconds'). Body = per-element audit. Each element gets 'wrong version' vs 'right version' contrast.
+anti_example: Topics with no clean wrong/right binary. When elements are too few (<4) or too many (>10).
+tags: ["external-pattern", "format-shell"]
+created_at: "2026-05-12T10:22:49.505591+00:00"
+updated_at: "2026-06-12"
+external: true
+marketing_value: yes
+economic_value: yes
+ingestion_mode: batch-2026-05-12
+source_url: "https://www.youtube.com/watch?v=ChifKqh25Nk"
+source_views: 3574
+source_video_id: ChifKqh25Nk
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/viral-hooks/saraev-stunt-video-format.md ===
+type: tactic
+name: saraev-stunt-video-format
+display_name: Bizarre concept + AI + mundane task stunt hook
+category: viral-hooks
+subcategory: external_pattern
+confidence: 0.10
+confirmation_count: 0
+source_type: youtube
+source_name: YouTube · @nicksaraev
+source_section: "I Uploaded A Fruit Fly Brain To Reply To My Emails — 2026-09-13"
+example: "I Uploaded A Fruit Fly Brain To Reply To My Emails"
+anti_example: "How I Use AI to Reply to Emails Faster"
+tags: ["external-pattern", "viral-hook", "stunt", "ai-business-os"]
+created_at: "2026-09-15T00:00:00.000000+00:00"
+updated_at: "2026-09-15"
+external: true
+marketing_value: yes
+economic_value: yes
+ingestion_mode: manual-2026-09-15
+source_url: "https://www.youtube.com/watch?v=GmCbzlb091A"
+source_views: 34717
+source_video_id: GmCbzlb091A
+no_transcript: true
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/viral-hooks/three-part-boring-intro-system.md ===
+type: tactic
+name: three-part-boring-intro-system
+display_name: Counter-intuitive 'boring intros win' three-part system
+category: viral-hooks
+subcategory: external_pattern
+confidence: 0.1
+confirmation_count: 1
+source_type: youtube_transcript
+source_name: YouTube · @ed-lawrence
+source_section: YouTube's Hard, Until Businesses Write Intros Like This — 2026-04-09
+example: Hook = counter-intuitive claim with quantified proof ('hundreds of millions of views'). Body = 3-part system + common mistakes.
+anti_example: Topics with no genuine counter-intuitive angle. When the proof claim isn't massive.
+tags: ["external-pattern", "viral-hook"]
+created_at: "2026-05-12T10:22:49.504343+00:00"
+updated_at: "2026-06-12"
+external: true
+marketing_value: yes
+economic_value: yes
+ingestion_mode: batch-2026-05-12
+source_url: "https://www.youtube.com/watch?v=M2XVgiFDbjo"
+source_views: 14714
+source_video_id: M2XVgiFDbjo
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//external-patterns/viral-hooks/visual-proof-before-after-cost-compare.md ===
+type: tactic
+name: visual-proof-before-after-cost-compare
+display_name: Visual proof + before/after cost compare
+category: viral-hooks
+subcategory: external_pattern
+confidence: 0.1
+confirmation_count: 1
+source_type: youtube_transcript
+source_name: YouTube · @ed-lawrence
+source_section: Claude Just Changed Making YouTube Videos Forever — 2026-04-18
+example: Hook opens with visible AI output on screen, then states the cost-before/cost-after compare in dollar+hour terms. Body = 3 segments (why → how → downsides).
+anti_example: Topics without a visible/visual artifact. When the cost-compare numbers aren't dramatic.
+tags: ["external-pattern", "viral-hook"]
+created_at: "2026-05-12T10:22:49.503055+00:00"
+updated_at: "2026-06-12"
+external: true
+marketing_value: yes
+economic_value: yes
+ingestion_mode: batch-2026-05-12
+source_url: "https://www.youtube.com/watch?v=KNI3LnzAC_c"
+source_views: 66458
+source_video_id: KNI3LnzAC_c
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//tactics/_index.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//tactics/ai-business-os/_index.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//tactics/ai-business-os/agent-owned-email-identity.md ===
+type: tactic
+name: agent-owned-email-identity
+display_name: Give each department agent its own email address — agents as real inbox actors
+category: ai-business-os
+subcategory: product-framing
+confidence: 0.45
+confirmation_count: 0
+source_type: competitor-observation
+source_name: "Nate Herk | AI Automation — 'Grok Bot Manages My Inbox (and has its own)' — YouTube 2026-09-16, 25k views, ~14 min; description only, no transcript"
+source_url: "https://www.youtube.com/watch?v=ff7om2bBLKM"
+note: "Confidence is low — extracted from video description only, no transcript. Bump to 0.65+ when Rob demos a client setup where the agent owns a dedicated inbox and the client interacts with it directly. Bump to 0.80+ if it becomes a close-conversion moment."
+tags: ["ai-business-os", "product-framing", "email-agent", "department-framing", "client-demo", "agentmail", "competitor-direct"]
+created_at: "2026-09-17T00:00:00.000000+00:00"
+updated_at: "2026-09-17T00:00:00.000000+00:00"
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//tactics/ai-business-os/self-hosted-oss-as-dfy-category-proof.md ===
+type: tactic
+name: self-hosted-oss-as-dfy-category-proof
+display_name: Open-source self-hosted competitors validate the category — use them as DFY proof
+category: ai-business-os
+subcategory: positioning
+confidence: 0.65
+confirmation_count: 0
+source_type: competitor-observation
+source_name: "OtoDock (otodock.io / github.com/OtoDock/oto-dock) — Show HN 2026-09-09, 50 points, 15 comments; article scraped 2026-09-12"
+source_url: "https://github.com/OtoDock/oto-dock"
+note: "Confidence is inference-based. Bump to 0.80+ when Rob generates a lead directly referencing OtoDock or a comparable OSS competitor as the reason they looked for DFY."
+tags: ["positioning", "competitive", "ai-business-os", "dfy-vs-self-hosted", "category-validation", "department-framing"]
+created_at: "2026-09-13T00:00:00.000000+00:00"
+updated_at: "2026-09-13T00:00:00.000000+00:00"
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//tactics/distribution/video-personalization-cold-outreach.md ===
+type: tactic
+name: video-personalization-cold-outreach
+display_name: Personalized video composite (face + prospect website screenshot) for cold email
+category: distribution
+subcategory: cold_email_delivery
+confidence: 0.95
+confirmation_count: 2
+source_type: own_data
+source_name: Instantly puller 2026-05-08
+source_section: PM Video 5.3% + HVAC Video 2.9% vs ~1.5% workspace baseline
+example: "PM Video Outreach - April 2026: 5.3% reply (13/243 leads)"
+anti_example: "Plain text cold email: workspace average 1.34% reply"
+tags: ["email", "cold-outreach", "video", "ai-business-os"]
+created_at: "2026-05-08T08:10:33.219055+00:00"
+updated_at: "2026-08-17T00:06:37.671929+00:00"
+audit_note: Demoted 2026-05-11 from 0.95 → 0.90. The 0.75 → 0.90 own_positive bump came from PM Video Outreach (5.3% reply rate), which OOO-filter retroactively reclassified as 0/13 human replies (100% autoresponders). HVAC Video bump (0.90 → 0.95) was real signal (14/15 human). Retracting PM Video bump only. See outreach/results/2026-05-11-au-law-ooo-contamination-audit.md.
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//tactics/email/first-sentence-outcome-not-intro.md ===
+type: tactic
+name: first-sentence-outcome-not-intro
+display_name: First body sentence names a specific outcome the prospect would buy
+category: email
+subcategory: cold_email_body
+confidence: 0.8
+confirmation_count: 1
+source_type: own_data
+source_name: "Instantly puller 2026-05-08 (anti-pattern: UAE 40% open / 0.8% reply) — Au Law own_positive retracted 2026-05-11"
+source_section: voice.md synth delta 2026-05-08
+example: We get AU law firms to 30 booked discovery calls/month using AI auto-callers.
+anti_example: Hi, I'm Rob from GYST, we help businesses with AI to streamline workflows.
+tags: ["email", "cold-outreach", "ai-business-os", "voice-callers"]
+created_at: "2026-05-08T08:10:33.219055+00:00"
+updated_at: "2026-07-20T11:50:10.215245+00:00"
+audit_note: Demoted 2026-05-11 from 0.70 → 0.50. The original +0.15 own_positive bump was driven by GYST_Leads_Aus_Law_v1 reply rate, which Rob confirmed was inflated by holiday OOO autoresponders, not real engagement. See outreach/results/2026-05-11-au-law-ooo-contamination-audit.md. Re-evaluate after ooo_filter.py is wired into the puller.
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//tactics/email/subject-names-vertical-first-5.md ===
+type: tactic
+name: subject-names-vertical-first-5
+display_name: Subject lines that name the vertical in the first 5 words
+category: email
+subcategory: cold_email_subject
+confidence: 0.95
+confirmation_count: 3
+source_type: own_data
+source_name: Instantly puller 2026-05-08
+source_section: GYST_Leads_Aus_Law_v1 (4.6%) + UAE Marketing Agencies (1.0% open=33.6% — partial confirmation)
+example: Quick AU law ops question
+anti_example: I hope this email finds you well
+tags: ["email", "cold-outreach", "vertical-specific", "ai-business-os"]
+created_at: "2026-05-08T08:10:33.219055+00:00"
+updated_at: "2026-07-06T07:44:31.421407+00:00"
+audit_note: Demoted 2026-05-11 from 0.95 → 0.90. The 0.75 → 0.90 own_positive bump came from PM Video Outreach (5.3% reply rate), which OOO-filter retroactively reclassified as 0/13 human replies (100% autoresponders). HVAC Video bump (0.90 → 0.95) was real signal (14/15 human). Retracting PM Video bump only. See outreach/results/2026-05-11-au-law-ooo-contamination-audit.md.
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//tactics/outcome-first-body.md ===
+type: tactic
+name: outcome-first-body
+display_name: Lead body copy with the outcome, not context or setup
+category: copy
+subcategory: body_structure
+confidence: 0.80
+confirmation_count: 2
+source_type: own_data
+source_name: "Workspace cold email pull 2026-05-08 + HVAC video campaigns W28/W30"
+source_section: "first-sentence-outcome-not-intro pattern generalised across channels"
+example: "Most HVAC operators lose 40% of inbound leads at first contact. We fix that."
+anti_example: "Hi, I'm Rob from GYST AI. We're an AI automation company helping businesses streamline operations."
+tags: ["copy", "email", "ads", "cold-outreach", "body-structure"]
+created_at: "2026-08-31T00:00:00.000000+00:00"
+updated_at: "2026-08-31T00:00:00.000000+00:00"
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//tactics/positioning/_index.md ===
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//tactics/positioning/diy-course-as-dfy-lead-source.md ===
+type: tactic
+name: diy-course-as-dfy-lead-source
+display_name: Competitor DIY courses are your warmest DFY lead pool
+category: positioning
+subcategory: competitive
+confidence: 0.65
+confirmation_count: 0
+source_type: competitor-observation
+source_name: "Nate Herk — Build & Sell Grok Bots (2-hour course), YouTube 2026-08-31, 116k views in 3 days"
+source_url: "https://www.youtube.com/watch?v=4hKJ9X6rGFo"
+source_section: "Description + timestamps only — no transcript available"
+note: "Confidence is inference-based. Bump to 0.80+ if Rob generates a lead from this path."
+tags: ["positioning", "competitive", "lead-gen", "dfy-vs-diy", "platform-lock"]
+created_at: "2026-09-05T00:00:00.000000+00:00"
+updated_at: "2026-09-05T00:00:00.000000+00:00"
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//tactics/positioning/free-ad-funded-agents-as-dfy-warm-up.md ===
+type: tactic
+name: free-ad-funded-agents-as-dfy-warm-up
+display_name: Free ad-funded AI agent platforms warm the market without cannibalizing DFY buyers
+category: positioning
+subcategory: competitive
+confidence: 0.55
+confirmation_count: 0
+source_type: competitor-observation
+source_name: "Nick Saraev (@nicksaraev) — 'I Found a Way To Use AI Agents Like Codex Completely For FREE', YouTube 2026-09-15, 49k views, promotes FreeBuff (freebuff.com)"
+source_url: "https://www.youtube.com/watch?v=IJS08TVGut0"
+source_section: "Description + chapters only — no transcript. Confidence is inference-based."
+note: "Bump to 0.70+ if Rob generates a lead who explicitly mentions trying a free agent tool and hitting limits. Bump again if FreeBuff or comparable platforms reach 500k+ monthly users (category signal)."
+tags: ["positioning", "competitive", "ai-business-os", "dfy-vs-free", "category-validation", "ad-funded", "counter-messaging"]
+created_at: "2026-09-17T00:00:00.000000+00:00"
+updated_at: "2026-09-17T00:00:00.000000+00:00"
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//tactics/positioning/skills-vs-agents-differentiation.md ===
+type: tactic
+name: skills-vs-agents-differentiation
+display_name: "Skills-over-bots" is the same architecture Rob installs — use it as DFY proof, not competition
+category: positioning
+subcategory: competitive
+confidence: 0.50
+confirmation_count: 0
+source_type: competitor-observation
+source_name: "Nate Herk — Anthropic Engineer Explains: What to Build Instead of AI Agents, YouTube 2026-09-13, 135k views"
+source_url: "https://www.youtube.com/watch?v=HIRDzMtuWFk"
+source_section: "Description + timestamps only — no transcript available"
+note: "Confidence is inference-based — no transcript. Bump to 0.70+ if Rob generates a lead or content win using this framing."
+tags: ["positioning", "competitive", "ai-business-os", "skills-architecture", "dfy-vs-diy", "anthropic-native"]
+created_at: "2026-09-15T00:00:00.000000+00:00"
+updated_at: "2026-09-15T00:00:00.000000+00:00"
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//tactics/single-yes-no-cta.md ===
+type: tactic
+name: single-yes-no-cta
+display_name: End cold outreach with one binary yes/no question, not a soft ask or link
+category: copy
+subcategory: cta
+confidence: 0.75
+confirmation_count: 1
+source_type: own_data
+source_name: "Workspace cold email pull 2026-05-08 + practitioner consensus (Alex Hormozi, Instantly community)"
+source_section: "reply-rate analysis — friction at CTA step"
+example: "Worth a quick call this week?"
+anti_example: "Let me know if you'd like to learn more or if you have any questions!"
+tags: ["copy", "email", "cold-outreach", "cta"]
+created_at: "2026-08-31T00:00:00.000000+00:00"
+updated_at: "2026-08-31T00:00:00.000000+00:00"
+
+=== FILE: /Users/robkloti/projects/gyst-ops/knowledge-base/wiki//tools-and-sdk/claude-agent-sdk-releases.md ===
+
+## v0.3.231 — 2026-08-13
+
+**Summary:** Maintenance parity bump — no API changes.
+
+- Synced to Claude Code v2.1.231 internals.
+- No new capabilities, no breaking changes.
+
+
